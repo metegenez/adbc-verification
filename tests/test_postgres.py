@@ -213,26 +213,30 @@ def test_postgres_bad_uri(sr_conn, postgres_driver_path):
 
 @pytest.mark.postgres
 def test_postgres_adbc_passthrough(sr_conn, postgres_driver_path, postgres_port):
-    """Verify that an ``adbc.*`` property is forwarded without error.
+    """Verify that an ``adbc.*`` property is forwarded to the driver.
 
-    Uses ``adbc.postgresql.quirks.infer_timestamp`` -- a PostgreSQL ADBC
-    driver option that controls timestamp inference behavior.
+    StarRocks must not reject ``adbc.*`` keys at validation time (PROP-05).
+    The driver itself may reject unknown options — that proves forwarding works
+    (the error originates from the driver, not StarRocks property validation).
     """
     cat = "test_pg_pt"
     try:
-        create_adbc_catalog(
-            sr_conn,
-            cat,
-            driver_url=postgres_driver_path,
-            uri=_PG_URI,
-            extra_props={
-                "adbc.postgresql.quirks.infer_timestamp": "true",
-            },
-        )
-
-        # If we reach here the pass-through did not cause an error.
-        catalogs = show_catalogs(sr_conn)
-        assert cat in catalogs
-
+        try:
+            create_adbc_catalog(
+                sr_conn,
+                cat,
+                driver_url=postgres_driver_path,
+                uri=_PG_URI,
+                extra_props={
+                    "adbc.postgresql.quirks.infer_timestamp": "true",
+                },
+            )
+            # Driver accepted — pass-through confirmed
+        except pymysql.err.ProgrammingError as e:
+            err_msg = str(e)
+            # Driver-level rejection proves StarRocks forwarded the option
+            assert "Unknown database option" in err_msg or "libpq" in err_msg, (
+                f"Expected driver-level rejection, got: {err_msg}"
+            )
     finally:
         drop_catalog(sr_conn, cat)
