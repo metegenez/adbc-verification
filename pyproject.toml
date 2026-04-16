@@ -1,0 +1,28 @@
+[project]
+name = "adbc-verification"
+version = "0.1.0"
+description = "Integration verification suite for StarRocks ADBC catalog stack"
+requires-python = ">=3.11"
+dependencies = [
+    "pytest>=8.0",
+    "pymysql>=1.1",
+    "pytest-json-report>=1.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--json-report",
+    "--json-report-file=reports/latest.json",
+    "--json-report-indent=2",
+    "-v",
+]
+markers = [
+    "sqlite: SQLite backend tests",
+    "flightsql: FlightSQL backend tests",
+    "postgres: PostgreSQL backend tests",
+    "duckdb: DuckDB backend tests",
+    "cross_join: Cross-driver join tests",
+    "negative: Negative/error validation tests",
+    "tls: TLS-enabled tests",
+]
