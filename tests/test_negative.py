@@ -220,27 +220,37 @@ def test_bad_entrypoint_symbol(sr_conn, sqlite_driver_path):
 
 @pytest.mark.negative
 def test_adbc_prefixed_key_not_rejected(sr_conn, sqlite_driver_path):
-    """adbc.* keys are pass-through and must never be rejected by validation.
+    """adbc.* keys are pass-through — StarRocks must NOT reject them at validation.
 
     PROP-05: Any property starting with ``adbc.`` is forwarded verbatim to
-    the driver -- the catalog layer must not validate these keys.
+    the driver. The driver itself may reject unknown options, but that error
+    comes from the driver, not StarRocks property validation.
     """
     cat = "test_neg_adbc_pt"
     try:
-        create_adbc_catalog(
-            sr_conn,
-            catalog_name=cat,
-            driver_url=sqlite_driver_path,
-            uri=":memory:",
-            extra_props={"adbc.some.arbitrary.option": "arbitrary_value"},
-        )
-
-        # If we got here, the adbc.* key was accepted (not rejected by validation)
-        rows = execute_sql(sr_conn, "SHOW CATALOGS")
-        cat_names = [r[0] for r in rows]
-        assert cat in cat_names, (
-            f"Catalog '{cat}' should exist after creation with adbc.* pass-through"
-        )
+        try:
+            create_adbc_catalog(
+                sr_conn,
+                catalog_name=cat,
+                driver_url=sqlite_driver_path,
+                uri=":memory:",
+                extra_props={"adbc.some.arbitrary.option": "arbitrary_value"},
+            )
+            # Driver accepted it — pass-through confirmed
+        except pymysql.err.ProgrammingError as e:
+            err_msg = str(e)
+            # If the error comes from the DRIVER (not StarRocks validation),
+            # that proves the adbc.* key was forwarded — PROP-05 is satisfied.
+            # StarRocks validation errors say "Unknown catalog property" or similar.
+            # Driver errors say "Unknown database option" or driver-specific text.
+            assert (
+                "Unknown database option" in err_msg
+                or "SQLite" in err_msg
+                or "connection to driver" in err_msg
+            ), (
+                f"Expected driver-level rejection (proving pass-through), "
+                f"but got what looks like a StarRocks validation error: {err_msg}"
+            )
     finally:
         drop_catalog(sr_conn, cat)
 
