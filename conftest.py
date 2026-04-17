@@ -7,6 +7,7 @@ import pytest
 from lib.starrocks import ensure_starrocks_running, tail_log
 from lib.docker_backends import (
     ensure_sqlflite_running,
+    ensure_mysql_running,
     ensure_postgres_running,
     stop_container,
 )
@@ -62,9 +63,22 @@ def duckdb_driver_path() -> str:
     return get_driver_path("duckdb")
 
 
+@pytest.fixture(scope="session")
+def mysql_driver_path() -> str:
+    return get_driver_path("mysql")
+
+
 # ---------------------------------------------------------------------------
 # Docker backends (session-scoped with teardown)
 # ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="session")
+def mysql_port():
+    """Start MySQL and yield port 3306.  Teardown stops container."""
+    port = ensure_mysql_running()
+    yield port
+    stop_container("adbc_test_mysql")
+
 
 @pytest.fixture(scope="session")
 def sqlflite_port():

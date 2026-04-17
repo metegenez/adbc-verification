@@ -29,7 +29,12 @@ def create_adbc_catalog(
     if extra_props:
         props.update(extra_props)
 
-    props_sql = ", ".join(f'"{k}"="{v}"' for k, v in props.items())
+    # Escape double quotes in values. Newlines are kept raw — StarRocks SQL
+    # accepts them inside quoted property values (needed for PEM certificates).
+    def _escape(v: str) -> str:
+        return v.replace('"', '\\"')
+
+    props_sql = ", ".join(f'"{k}"="{_escape(v)}"' for k, v in props.items())
     sql = f"CREATE EXTERNAL CATALOG {catalog_name} PROPERTIES({props_sql})"
     with conn.cursor() as cur:
         cur.execute(sql)

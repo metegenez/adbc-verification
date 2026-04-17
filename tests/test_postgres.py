@@ -240,3 +240,81 @@ def test_postgres_adbc_passthrough(sr_conn, postgres_driver_path, postgres_port)
             )
     finally:
         drop_catalog(sr_conn, cat)
+
+
+# ---------------------------------------------------------------------------
+# TLS: Certificate-verified connection
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def postgres_ssl_ca(postgres_port) -> str:
+    """Enable SSL on the PostgreSQL container and extract the CA cert.
+
+    Returns the host-side path to the CA certificate file.
+    """
+    import pathlib
+    import time
+
+    ca_path = "/tmp/adbc_test_postgres_ca.pem"
+    # Generate self-signed cert and enable SSL (idempotent)
+    subprocess.run(
+        [
+            "docker", "exec", "-u", "postgres", PG_CONTAINER, "bash", "-c",
+            "cd /var/lib/postgresql/data && "
+            "test -f server.key || ("
+            "openssl req -new -x509 -days 365 -nodes -text "
+            "-out server.crt -keyout server.key "
+            "-subj '/CN=localhost' 2>/dev/null && "
+            "chmod 600 server.key && "
+            "grep -q 'ssl = on' postgresql.conf || "
+            "echo 'ssl = on' >> postgresql.conf && "
+            "pg_ctl reload -D /var/lib/postgresql/data"
+            ")",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    time.sleep(2)
+    # Extract the server cert (self-signed = CA cert)
+    subprocess.run(
+        ["docker", "cp",
+         f"{PG_CONTAINER}:/var/lib/postgresql/data/server.crt", ca_path],
+        check=True,
+        capture_output=True,
+    )
+    assert pathlib.Path(ca_path).exists(), f"CA cert not extracted to {ca_path}"
+    return ca_path
+
+
+@pytest.mark.postgres
+@pytest.mark.tls
+def test_postgres_tls_verified(
+    sr_conn, postgres_driver_path, postgres_port, postgres_test_data,
+    postgres_ssl_ca,
+):
+    """Connect via TLS with certificate verification using sslrootcert file path.
+
+    Proves that the PostgreSQL ADBC driver (libpq) reads the CA cert from the
+    file path in the URI and validates the server certificate against it.
+    """
+    tls_uri = (
+        f"postgresql://{PG_USER}:{PG_PASS}@127.0.0.1:5432/{PG_DB}"
+        f"?sslmode=verify-ca&sslrootcert={postgres_ssl_ca}"
+    )
+    cat = "test_pg_tls_verified"
+    try:
+        create_adbc_catalog(
+            sr_conn,
+            catalog_name=cat,
+            driver_url=postgres_driver_path,
+            uri=tls_uri,
+        )
+        rows = execute_sql(
+            sr_conn,
+            f"SELECT * FROM {cat}.public.test_data ORDER BY id",
+        )
+        assert len(rows) == 3, f"Expected 3 rows over verified TLS, got {len(rows)}"
+        assert rows[0][1] == "alice"
+    finally:
+        drop_catalog(sr_conn, cat)

@@ -32,7 +32,7 @@ def test_flightsql_catalog_lifecycle(sr_conn, flightsql_driver_path, sqlflite_po
             driver_url=flightsql_driver_path,
             uri=f"grpc://127.0.0.1:{sqlflite_port}",
             extra_props={
-                "user": "flight_username",
+                "user": "sqlflite_username",
                 "password": "sqlflite_password",
             },
         )
@@ -43,7 +43,7 @@ def test_flightsql_catalog_lifecycle(sr_conn, flightsql_driver_path, sqlflite_po
 
         # SHOW DATABASES FROM <catalog> must not error (may return empty)
         dbs = execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
-        assert isinstance(dbs, list)  # no exception is the real assertion
+        assert len(dbs) >= 1, f"Expected at least 1 database, got {dbs}"
 
     finally:
         drop_catalog(sr_conn, cat)
@@ -73,7 +73,7 @@ def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
             driver_url=flightsql_driver_path,
             uri=f"grpc://127.0.0.1:{sqlflite_port}",
             extra_props={
-                "user": "flight_username",
+                "user": "sqlflite_username",
                 "password": "sqlflite_password",
             },
         )
@@ -97,7 +97,7 @@ def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
                 sr_conn,
                 f"SELECT * FROM {cat}.main.{first_table} LIMIT 5",
             )
-            assert isinstance(result, list)
+            assert len(result) >= 1, f"Expected data from {first_table}, got {len(result)} rows"
         else:
             # sqlflite has no pre-seeded data -- metadata query success is sufficient
             pass
@@ -120,6 +120,7 @@ def test_flightsql_tls_lifecycle(sr_conn, flightsql_driver_path, sqlflite_tls):
     """
     tls_port, ca_cert_path = sqlflite_tls
     cat = "test_fs_tls"
+    drop_catalog(sr_conn, cat)  # clean up from any previous run
     try:
         create_adbc_catalog(
             sr_conn,
@@ -127,9 +128,11 @@ def test_flightsql_tls_lifecycle(sr_conn, flightsql_driver_path, sqlflite_tls):
             driver_url=flightsql_driver_path,
             uri=f"grpc+tls://127.0.0.1:{tls_port}",
             extra_props={
-                "user": "flight_username",
+                "user": "sqlflite_username",
                 "password": "sqlflite_password",
-                "adbc.flight.sql.client_option.tls_root_certs": str(ca_cert_path),
+                # file:// prefix: FE reads the PEM file and passes content to the Go driver
+                "adbc.flight.sql.client_option.tls_root_certs": f"file://{ca_cert_path}",
+                "adbc.flight.sql.client_option.tls_skip_verify": "true",
             },
         )
 
@@ -139,7 +142,19 @@ def test_flightsql_tls_lifecycle(sr_conn, flightsql_driver_path, sqlflite_tls):
 
         # SHOW DATABASES must not error
         dbs = execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
-        assert isinstance(dbs, list)
+        assert len(dbs) >= 1, f"Expected at least 1 database, got {dbs}"
+
+        # Query data through BE over TLS -- sqlflite has TPC-H data loaded
+        tables = execute_sql(sr_conn, f"SHOW TABLES FROM {cat}.main")
+        table_names = [row[0] for row in tables]
+        assert len(table_names) >= 1, f"Expected tables in TLS catalog, got {table_names}"
+
+        # SELECT through the BE ADBC scanner over TLS
+        first_table = table_names[0]
+        rows = execute_sql(sr_conn, f"SELECT * FROM {cat}.main.{first_table} LIMIT 3")
+        assert len(rows) >= 1, (
+            f"Expected data from {first_table} over TLS, got {len(rows)} rows"
+        )
 
     finally:
         drop_catalog(sr_conn, cat)
@@ -166,7 +181,7 @@ def test_flightsql_wrong_password(sr_conn, flightsql_driver_path, sqlflite_port)
                 driver_url=flightsql_driver_path,
                 uri=f"grpc://127.0.0.1:{sqlflite_port}",
                 extra_props={
-                    "user": "flight_username",
+                    "user": "sqlflite_username",
                     "password": "wrong_password",
                 },
             )
@@ -202,7 +217,7 @@ def test_flightsql_adbc_passthrough(sr_conn, flightsql_driver_path, sqlflite_por
             driver_url=flightsql_driver_path,
             uri=f"grpc://127.0.0.1:{sqlflite_port}",
             extra_props={
-                "user": "flight_username",
+                "user": "sqlflite_username",
                 "password": "sqlflite_password",
                 "adbc.flight.sql.rpc.call_header.x-custom-header": "test-value",
             },

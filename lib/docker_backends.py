@@ -46,6 +46,8 @@ def start_sqlflite_no_tls(name: str = "adbc_test_sqlflite") -> int:
         capture_output=True,
     )
     _wait_for_port("127.0.0.1", 31337, timeout=30)
+    # sqlflite needs a moment after port opens to finish gRPC server init
+    time.sleep(3)
     return 31337
 
 
@@ -98,6 +100,56 @@ def ensure_postgres_running(name: str = "adbc_test_postgres") -> int:
     if result.returncode == 0 and result.stdout.strip() == "true":
         return 5432
     return start_postgres(name)
+
+
+# ---------------------------------------------------------------------------
+# MySQL -- mysql:8.0
+# ---------------------------------------------------------------------------
+
+def start_mysql(name: str = "adbc_test_mysql") -> int:
+    """Start MySQL 8.0.  Returns port (3306).
+
+    Waits for MySQL to be fully ready (not just TCP port open) by polling
+    ``mysqladmin ping`` inside the container.
+    """
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+    subprocess.run(
+        [
+            "docker", "run",
+            "--name", name,
+            "--detach", "--rm",
+            "--publish", "3306:3306",
+            "--env", "MYSQL_ROOT_PASSWORD=testpass",
+            "--env", "MYSQL_DATABASE=testdb",
+            "mysql:8.0",
+        ],
+        check=True,
+        capture_output=True,
+    )
+    # Wait for MySQL to be fully ready (not just port open)
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        result = subprocess.run(
+            ["docker", "exec", name, "mysqladmin", "ping",
+             "-uroot", "-ptestpass", "--silent"],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            return 3306
+        time.sleep(2)
+    raise RuntimeError(f"MySQL container {name} not ready after 60s")
+
+
+def ensure_mysql_running(name: str = "adbc_test_mysql") -> int:
+    """Return 3306 if MySQL is already running, otherwise start it."""
+    result = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Running}}", name],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0 and result.stdout.strip() == "true":
+        return 3306
+    return start_mysql(name)
 
 
 # ---------------------------------------------------------------------------

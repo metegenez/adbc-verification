@@ -22,6 +22,7 @@ markers = [
     "flightsql: FlightSQL backend tests",
     "postgres: PostgreSQL backend tests",
     "duckdb: DuckDB backend tests",
+    "mysql: MySQL backend tests",
     "cross_join: Cross-driver join tests",
     "negative: Negative/error validation tests",
     "tls: TLS-enabled tests",
