@@ -32,7 +32,7 @@ def test_flightsql_catalog_lifecycle(sr_conn, flightsql_driver_path, sqlflite_po
             driver_url=flightsql_driver_path,
             uri=f"grpc://127.0.0.1:{sqlflite_port}",
             extra_props={
-                "user": "sqlflite_username",
+                "username": "sqlflite_username",
                 "password": "sqlflite_password",
             },
         )
@@ -73,7 +73,7 @@ def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
             driver_url=flightsql_driver_path,
             uri=f"grpc://127.0.0.1:{sqlflite_port}",
             extra_props={
-                "user": "sqlflite_username",
+                "username": "sqlflite_username",
                 "password": "sqlflite_password",
             },
         )
@@ -128,7 +128,7 @@ def test_flightsql_tls_lifecycle(sr_conn, flightsql_driver_path, sqlflite_tls):
             driver_url=flightsql_driver_path,
             uri=f"grpc+tls://127.0.0.1:{tls_port}",
             extra_props={
-                "user": "sqlflite_username",
+                "username": "sqlflite_username",
                 "password": "sqlflite_password",
                 # file:// prefix: FE reads the PEM file and passes content to the Go driver
                 "adbc.flight.sql.client_option.tls_root_certs": f"file://{ca_cert_path}",
@@ -181,7 +181,7 @@ def test_flightsql_wrong_password(sr_conn, flightsql_driver_path, sqlflite_port)
                 driver_url=flightsql_driver_path,
                 uri=f"grpc://127.0.0.1:{sqlflite_port}",
                 extra_props={
-                    "user": "sqlflite_username",
+                    "username": "sqlflite_username",
                     "password": "wrong_password",
                 },
             )
@@ -217,7 +217,7 @@ def test_flightsql_adbc_passthrough(sr_conn, flightsql_driver_path, sqlflite_por
             driver_url=flightsql_driver_path,
             uri=f"grpc://127.0.0.1:{sqlflite_port}",
             extra_props={
-                "user": "sqlflite_username",
+                "username": "sqlflite_username",
                 "password": "sqlflite_password",
                 "adbc.flight.sql.rpc.call_header.x-custom-header": "test-value",
             },
