@@ -1,6 +1,6 @@
 # StarRocks ADBC Verification Suite
 
-Docker Compose-based end-to-end verification suite for the StarRocks ADBC catalog stack. Ships a StarRocks DEB into a container alongside backend data sources (PostgreSQL, MySQL, FlightSQL/SQLite, DuckDB, SQLite), then runs TPC-H and cross-driver join queries through the StarRocks ADBC catalog layer.
+Docker Compose-based end-to-end verification suite for the StarRocks ADBC catalog stack. Ships a StarRocks DEB into a container alongside backend data sources (PostgreSQL, MySQL, FlightSQL/SQLite, DuckDB, SQLite), then runs TPC-H and cross-driver join queries through the StarRocks ADBC catalog layer. One command: `./run-verify.py fe.deb be.deb`.
 
 ## Quick Start
 
@@ -42,7 +42,7 @@ python docker/generate-data.py
 ./run-verify.py /path/to/starrocks-fe.deb /path/to/starrocks-be.deb
 ```
 
-This copies `.deb` packages, builds Docker containers, waits for healthchecks, runs all tests, and reports results.
+Copies `.deb` packages, builds Docker containers, waits for healthchecks, runs all tests, and reports results.
 
 ### Fast Iteration
 
@@ -55,55 +55,63 @@ cp /path/to/new-be.deb docker/starrocks-be_latest_amd64.deb
 docker compose -f docker/docker-compose.yml up -d --build sr-main
 
 # Re-run tests (containers stay running)
-pytest tests/ -v
+.venv/bin/pytest tests/ -v
 
 # Run a subset of tests
-pytest tests/ -k flightsql -v
-pytest tests/ -k "sqlite or duckdb" -v
-pytest tests/ -k "not tls" -v
+.venv/bin/pytest tests/ -k flightsql -v
+.venv/bin/pytest tests/ -k "sqlite or duckdb" -v
+.venv/bin/pytest tests/ -k "not tls" -v
 ```
 
-### Available pytest Markers
+## Running Tests Directly
 
-| Marker | Description |
-|--------|-------------|
-| `sqlite` | SQLite backend tests |
-| `flightsql` | FlightSQL backend tests |
-| `postgres` | PostgreSQL backend tests |
-| `duckdb` | DuckDB backend tests |
-| `mysql` | MySQL backend tests |
-| `cross_join` | Cross-driver federation tests |
-| `negative` | Error path validation tests |
-| `tls` | TLS-enabled tests |
+After `docker compose up` (containers running):
+
+```bash
+source .venv/bin/activate
+export STARROCKS_HOST=127.0.0.1 STARROCKS_PORT=9030
+
+# All tests
+pytest tests/ -v
+
+# Single module
+pytest tests/test_postgres.py -v
+
+# Single test
+pytest tests/test_flightsql.py -k "test_name" -v -s
+
+# Query file tests
+pytest tests/test_queries.py -v
+```
 
 ## Project Structure
 
 ```
 docker/
-  docker-compose.yml    # Service definitions (5 services on sr-net bridge)
+  docker-compose.yml    # 5 services on sr-net bridge network
   Dockerfile            # StarRocks container from ubuntu:24.04 with .deb install
-  entrypoint.sh         # FE+BE startup, priority_networks, BE registration
+  entrypoint.sh         # FE+BE startup, BE registration
   init/                 # Backend init SQL (auto-executed at container startup)
-    postgres/           # TPC-H schema + seed data (8 tables)
-    mysql/              # TPC-H schema + seed data (8 tables)
+    postgres/           # TPC-H schema + SF1 data
+    mysql/              # TPC-H schema + SF1 data
     sqlflite/           # SQLite-compatible TPC-H schema (8 tables)
-  data/                 # Pre-baked .db files (copied into StarRocks image)
-  certs/                # Self-signed TLS certificates (FlightsQL, PostgreSQL)
-  drivers/              # ADBC driver .so files (copied from host)
-  generate-data.py      # Script to regenerate all .db files
+  data/                 # Pre-baked .db files + SF1 CSVs
+  certs/                # Self-signed TLS certificates
+  drivers/              # ADBC driver .so files (copied from host at build time)
+  generate-data.py      # Generate SQLite/DuckDB .db files
 queries/                # Externalized SQL query files (versioned independently)
-  sqlite/               # TPC-H SELECT + JOIN against SQLite catalog
-  postgres/             # TPC-H SELECT + JOIN against PostgreSQL catalog
-  mysql/                # TPC-H SELECT + JOIN against MySQL catalog
-  flightsql/            # TPC-H SELECT + JOIN against FlightSQL catalog
-  duckdb/               # TPC-H SELECT + JOIN against DuckDB catalog
+  sqlite/               # TPC-H queries against SQLite catalog
+  postgres/             # 22 TPC-H queries against PostgreSQL catalog
+  mysql/                # 22 TPC-H queries against MySQL catalog
+  flightsql/            # TPC-H queries against FlightSQL catalog
+  duckdb/               # TPC-H queries against DuckDB catalog
   cross-join/           # Cross-driver federation queries
-tests/                  # pytest test suite (35 tests across 7 modules)
+tests/                  # pytest test suite (35 tests + query discovery)
+  test_queries.py       # Auto-discovers and runs all .sql files under queries/
 lib/                    # Helper modules
   catalog_helpers.py    # CREATE/DROP CATALOG SQL helpers
   driver_registry.py    # ADBC driver path resolution (build-time only)
-  starrocks.py          # Thin pymysql connection wrapper
-conftest.py             # pytest fixtures (docker compose-aware)
+conftest.py             # pytest fixtures (Docker Compose-aware)
 run-verify.py           # CLI runner — ship→verify→retest loop
 ```
 
@@ -111,10 +119,38 @@ run-verify.py           # CLI runner — ship→verify→retest loop
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `STARROCKS_HOST` | `127.0.0.1` | StarRocks FE MySQL host (port 9030 published from container) |
+| `STARROCKS_HOST` | `127.0.0.1` | StarRocks FE host (port 9030 published from container) |
 | `STARROCKS_PORT` | `9030` | StarRocks FE MySQL port |
-| `FLIGHTSQL_CA_CERT` | `docker/certs/flightsql-ca.pem` | FlightSQL TLS CA certificate path |
-| `POSTGRES_CA_CERT` | `docker/certs/postgres-ca.pem` | PostgreSQL TLS CA certificate path |
+
+## Docker Compose Services
+
+| Service | Port (internal) | Host Port | Description |
+|---------|-----------------|-----------|-------------|
+| `sr-main` | 9030 | 9030 | StarRocks FE+BE with 5 ADBC drivers |
+| `sr-postgres` | 5432 | — | PostgreSQL 16 with TPC-H data |
+| `sr-mysql` | 3306 | — | MySQL 8.0 with TPC-H data |
+| `sr-flightsql` | 31337 | — | FlightSQL (sqlflite) without TLS |
+| `sr-flightsql-tls` | 31337 | 31338 | FlightSQL (sqlflite) with TLS |
+
+All services communicate via Docker DNS on the `sr-net` bridge network.
+
+## Test Coverage
+
+- **35 tests** across 7 modules (catalog lifecycle, data, error paths)
+- **5 ADBC drivers**: SQLite, DuckDB, MySQL, PostgreSQL, FlightSQL
+- **TPC-H queries**: SELECT + JOIN across all drivers, plus 44 SF1 query files
+- **Cross-driver federation**: SQLite↔PostgreSQL, SQLite↔SQLite JOINs
+- **TLS**: FlightSQL and PostgreSQL with self-signed certificates
+- **Error paths**: Bad URIs, wrong passwords, missing entrypoints, unknown keys
+
+## Available pytest Markers
+
+| Marker | Description |
+|--------|-------------|
+| `sqlite` / `flightsql` / `postgres` / `duckdb` / `mysql` | Per-driver tests |
+| `cross_join` | Cross-driver federation tests |
+| `negative` | Error path validation tests |
+| `tls` | TLS-enabled tests |
 
 ## CLI Reference
 
@@ -151,30 +187,9 @@ options:
 ./run-verify.py --skip-rebuild --report report-v2.json fe.deb be.deb
 ```
 
-## Docker Compose Services
-
-All services run on the `sr-net` bridge network and communicate via Docker DNS:
-
-| Service | Container | Port (internal) | Host Port | Description |
-|---------|-----------|-----------------|-----------|-------------|
-| `sr-main` | `sr-main` | 9030, 8030, 9408, 9050, 9419 | 9030 | StarRocks FE+BE with all 5 ADBC drivers |
-| `sr-postgres` | `sr-postgres` | 5432 | — | PostgreSQL 16 with TPC-H data |
-| `sr-mysql` | `sr-mysql` | 3306 | — | MySQL 8.0 with TPC-H data |
-| `sr-flightsql` | `sr-flightsql` | 31337 | — | FlightSQL (sqlflite) without TLS |
-| `sr-flightsql-tls` | `sr-flightsql-tls` | 31337 | 31338 | FlightSQL (sqlflite) with TLS |
-
-## Test Coverage
-
-- **35 tests** across 7 test modules
-- **5 ADBC drivers**: SQLite, DuckDB, MySQL, PostgreSQL, FlightSQL
-- **TPC-H queries**: SELECT + JOIN across all drivers
-- **Cross-driver federation**: SQLite↔PostgreSQL, SQLite↔SQLite JOINs
-- **TLS**: FlightSQL and PostgreSQL with self-signed certificates
-- **Error paths**: Bad URIs, wrong passwords, missing entrypoints, unknown keys
-
 ## Troubleshooting
 
-- **Tests fail but containers are healthy**: Check `docker compose logs sr-main --tail=50` for StarRocks errors
-- **Container won't start**: Ensure `.deb` files exist in `docker/` directory, check `docker compose ps`
-- **Driver not found**: Verify driver `.so` files are in `docker/drivers/` and match names in `conftest.py`
-- **Port conflict**: Port 9030 must be free on host; change via `STARROCKS_PORT` env var
+- **Tests fail but containers are healthy**: `docker compose -f docker/docker-compose.yml logs sr-main --tail=50`
+- **Container won't start**: Ensure `.deb` files exist in `docker/`, check `docker compose ps`
+- **Driver not found**: Verify `.so` files are in `docker/drivers/` matching names in `conftest.py`
+- **Port conflict**: Port 9030 must be free; override with `STARROCKS_PORT` env var
