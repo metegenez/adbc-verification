@@ -168,21 +168,47 @@ def sqlite_test_db() -> str:
 
 @pytest.fixture(autouse=True)
 def capture_on_failure(request):
-    """On test failure, capture Docker Compose logs from all services."""
+    """On test failure, capture Docker Compose logs and service status."""
     yield
     rep_call = getattr(request.node, "rep_call", None)
     if rep_call is not None and rep_call.failed:
         compose_dir = os.path.join(os.path.dirname(__file__), "docker")
         try:
-            logs = subprocess.run(
-                ["docker", "compose", "logs", "--tail=50"],
+            all_logs = subprocess.run(
+                ["docker", "compose", "logs", "--tail=100"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                cwd=compose_dir,
+            )
+            request.node.user_properties.append(
+                ("compose_logs_all", all_logs.stdout[-8000:])
+            )
+        except Exception:
+            pass
+        try:
+            sr_logs = subprocess.run(
+                ["docker", "compose", "logs", "sr-main", "--tail=200"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                cwd=compose_dir,
+            )
+            request.node.user_properties.append(
+                ("compose_logs_sr_main", sr_logs.stdout[-8000:])
+            )
+        except Exception:
+            pass
+        try:
+            ps_output = subprocess.run(
+                ["docker", "compose", "ps"],
                 capture_output=True,
                 text=True,
                 timeout=10,
                 cwd=compose_dir,
             )
             request.node.user_properties.append(
-                ("compose_logs", logs.stdout[-5000:])
+                ("compose_ps", ps_output.stdout)
             )
         except Exception:
             pass

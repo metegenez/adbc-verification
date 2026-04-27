@@ -79,6 +79,8 @@ services:
       TLS_ENABLED: "1"
       SQLFLITE_PASSWORD: sqlflite_password
       PRINT_QUERIES: "1"
+    ports:
+      - "31338:31337"
     networks:
       - sr-net
     healthcheck:
