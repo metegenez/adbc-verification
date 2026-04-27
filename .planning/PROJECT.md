@@ -18,19 +18,20 @@ A Docker Compose-based end-to-end verification suite for the StarRocks ADBC cata
 - ✓ TLS support for FlightSQL — existing
 - ✓ REQ‑TLS for PostgreSQL — existing
 - ✓ Catalog lifecycle helpers (CREATE/DROP EXTERNAL CATALOG) — existing
+- ✓ **DC-01**: Docker Compose file with 5 services on sr-net bridge network — Validated in Phase 01
+- ✓ **DC-02**: StarRocks container from ubuntu:24.04 .deb with all 5 ADBC drivers baked in — Validated in Phase 01
+- ✓ **DC-03**: Backend data containers with TPC-H schema and data pre-loaded at startup — Validated in Phase 01
+- ✓ **DC-04**: Pytest conftest adapted for Docker Compose service names and fixed driver paths — Validated in Phase 01
+- ✓ **DC-05**: TPC-H query corpus as standalone SQL files in `queries/` directory — Validated in Phase 01
+- ✓ **DC-06**: Cross-driver join test corpus (SQLite↔PostgreSQL federation) — Validated in Phase 01
+- ✓ **DC-07**: Ship→verify→retest loop via `run-verify.py` — Validated in Phase 01
+- ✓ **DC-08**: Log capture on failure pulling container logs into test report — Validated in Phase 01
+- ✓ **DC-09**: CLI runner accepting DEB path and orchestrating full test cycle — Validated in Phase 01
+- ✓ **DC-10**: Fast iteration path: `pytest -k` with running containers — Validated in Phase 01
 
 ### Active
 
-- [ ] **DC-01**: Docker Compose file that packages StarRocks (from shipped DEB) + all backend data sources as named services
-- [ ] **DC-02**: StarRocks container built from a shipped .deb, with all ADBC drivers pre-installed inside the container
-- [ ] **DC-03**: Backend data containers (PostgreSQL, MySQL, FlightSQL/SQLite) with TPC-H schema and data pre-loaded at startup
-- [ ] **DC-04**: Pytest conftest adapted to use Docker Compose service names (container networking) instead of host ports
-- [ ] **DC-05**: TPC-H query corpus as standalone SQL files in a `queries/` directory, runnable against catalogs defined by environment variables or per-driver config
-- [ ] **DC-06**: Cross-driver join test corpus (e.g., FlightSQL ↔ PostgreSQL joins via StarRocks internal federation)
-- [ ] **DC-07**: Ship → verify → retest loop script: rebuild DEB, copy into docker/, `docker compose up --build`, run tests
-- [ ] **DC-08**: Log capture on failure that pulls container logs (FE, BE, backend) into the test report
-- [ ] **DC-09**: CLI runner that accepts a DEB path and orchestrates the full test cycle (up, test, down)
-- [ ] **DC-10**: Fast iteration path: copy .deb to docker/, docker compose up -d --build, run subset of tests relevant to the change
+*(none — all active requirements validated in Phase 01)*
 
 ### Out of Scope
 
@@ -42,7 +43,15 @@ A Docker Compose-based end-to-end verification suite for the StarRocks ADBC cata
 
 ## Context
 
-The existing test suite (`tests/`, `conftest.py`, `lib/`) works against a locally running `STARROCKS_HOME` and individually managed Docker containers. It requires manual StarRocks startup, hardcoded host ports, and doesn't support the build→ship→test cycle. The `remote_table_verification` project at `/home/mete/coding/remote_table_verification/` demonstrates the proven pattern: Docker Compose with `rtv-main` (StarRocks from DEB), backend services on a Docker network, and pytest run from host connecting to exposed MySQL port. This project adapts that pattern here but goes further: all backend databases get TPC-H preloaded, SQL queries are externalized, and the full toolchain supports the inner dev loop.
+Phase 01 complete — Docker Compose verification suite built. The project now contains:
+- `docker/` with Docker Compose (5 services), Dockerfile, entrypoint, init SQL, pre-baked data, TLS certs
+- `conftest.py` refactored for Docker Compose (env var config, fixed driver paths, compose log capture)
+- `tests/` adapted for Docker DNS service names (sr-postgres, sr-mysql, sr-flightsql)
+- `queries/` with TPC-H SQL files per driver and cross-driver federation queries
+- `run-verify.py` CLI runner for the full ship→verify→retest loop
+- `README.md` with setup, fast iteration, and troubleshooting docs
+
+All 17 requirements (6 legacy + DC-01 through DC-10 + VAL-01 through VAL-07) validated in Phase 01.
 
 ## Constraints
 
@@ -57,11 +66,13 @@ The existing test suite (`tests/`, `conftest.py`, `lib/`) works against a locall
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Docker Compose instead of separate `docker run` calls | Single command to bring up/down the entire environment; service discovery via DNS on internal network | — Pending |
-| StarRocks from DEB in Dockerfile, not from source build in container | Matches the ship→test loop; faster iteration | — Pending |
-| SQL queries as standalone files outside Docker Compose | Editable/versionable independently of container images | — Pending |
-| TPC-H as query corpus | Standard benchmark; meaningful cross-driver queries | — Pending |
-| Host runs pytest against Docker Compose exposed port | Simple; no need for pytest-in-docker | — Pending |
+| Docker Compose instead of separate `docker run` calls | Single command to bring up/down the entire environment; service discovery via DNS on internal network | Implemented — 5 services on `sr-net` bridge network |
+| StarRocks from DEB in Dockerfile, not from source build in container | Matches the ship→test loop; faster iteration | Implemented — `docker/` contains Dockerfile with `.deb` install |
+| SQL queries as standalone files outside Docker Compose | Editable/versionable independently of container images | Implemented — `queries/` directory with per-driver SQL files |
+| TPC-H as query corpus | Standard benchmark; meaningful cross-driver queries | Implemented — 8-table TPC-H schema with seed data across all backends |
+| Host runs pytest against Docker Compose exposed port | Simple; no need for pytest-in-docker | Implemented — `conftest.py` connects to `STARROCKS_HOST:STARROCKS_PORT` |
+| Driver paths as constants in conftest.py | Deterministic; no TOML resolution at runtime | Implemented — `/opt/starrocks/drivers/` fixed paths |
+| Containers stay running by default after tests | Fast re-test iteration without rebuild | Implemented — `run-verify.py --keep` (default) |
 
 ## Evolution
 
@@ -81,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-27 after initialization*
+*Last updated: 2026-04-27 after Phase 01 completion*

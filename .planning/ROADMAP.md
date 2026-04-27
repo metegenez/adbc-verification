@@ -23,9 +23,9 @@ Transform the existing 35-test ADBC verification suite from a manual local-StarR
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Docker Compose Foundation — `docker-compose.yml`, StarRocks Dockerfile (from `.deb` with baked-in ADBC drivers), backend service definitions (PostgreSQL, MySQL, FlightSQL/SQLite) with healthchecks and init SQL, adapted conftest.py using Docker DNS service names, retires `lib/docker_backends.py` and `lib/starrocks.py`. All 35 existing tests pass. **(DC-01, DC-02, DC-03, DC-04, VAL-01, VAL-02, VAL-03, VAL-04, VAL-05, VAL-06, VAL-07)**
-- [ ] 01-02: TPC-H Depth — TPC-H schema and seed data loaded into all 5 backends, externalized SQL query files in `queries/` directory, cross-driver JOIN test corpus adapted to Docker service names, query execution engine maps query files to catalogs, PostgreSQL DECIMAL→DOUBLE cast resolution **(DC-05, DC-06, VAL-06)**
-- [ ] 01-03: Developer Experience — `run-verify.sh` CLI runner, ship→verify→retest loop script, extended log capture from all Compose services on failure, fast iteration path with subset test mode and container reuse **(DC-07, DC-08, DC-09, DC-10)**
+- [x] 01-01: Docker Compose Foundation — `docker-compose.yml`, StarRocks Dockerfile (from `.deb` with baked-in ADBC drivers), backend service definitions (PostgreSQL, MySQL, FlightSQL/SQLite) with healthchecks and init SQL, adapted conftest.py using Docker DNS service names, retires `lib/docker_backends.py` and `lib/starrocks.py`. All 35 existing tests pass. **(DC-01, DC-02, DC-03, DC-04, VAL-01, VAL-02, VAL-03, VAL-04, VAL-05, VAL-06, VAL-07)**
+- [x] 01-02: TPC-H Depth — TPC-H schema and seed data loaded into all 5 backends, externalized SQL query files in `queries/` directory, cross-driver JOIN test corpus adapted to Docker service names, query execution engine maps query files to catalogs, PostgreSQL DECIMAL→DOUBLE cast resolution **(DC-05, DC-06, VAL-06)**
+- [x] 01-03: Developer Experience — `run-verify.sh` CLI runner, ship→verify→retest loop script, extended log capture from all Compose services on failure, fast iteration path with subset test mode and container reuse **(DC-07, DC-08, DC-09, DC-10)**
 
 ## Progress
 
