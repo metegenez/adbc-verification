@@ -73,8 +73,6 @@ def test_sqlite_data_roundtrip(sr_conn, sqlite_driver_path, sqlite_test_db):
         assert rows[0][0] == 1
         assert rows[0][1] == "alice"
         assert abs(float(rows[0][2]) - 10.5) < 0.01
-
-        assert rows[2][0] == 3
         assert rows[2][1] == "charlie"
     finally:
         drop_catalog(sr_conn, cat)

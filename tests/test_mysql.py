@@ -87,10 +87,10 @@ def test_mysql_data_roundtrip(sr_conn, mysql_driver_path, mysql_port, mysql_test
         )
         assert len(rows) == 3, f"Expected 3 rows, got {len(rows)}"
         assert rows[0][0] == 1
-        assert rows[0][1] == "alice"
+        assert rows[0][1] == "Alice"
         assert abs(float(rows[0][2]) - 10.5) < 0.01
         assert rows[2][0] == 3
-        assert rows[2][1] == "charlie"
+        assert rows[2][1] == "Charlie"
     finally:
         drop_catalog(sr_conn, cat)
 
@@ -180,8 +180,8 @@ def test_mysql_sqlite_join(
             """,
         )
         assert len(rows) == 2, f"Expected 2 joined rows, got {len(rows)}: {rows}"
-        assert rows[0][0] == "alice"
-        assert rows[1][0] == "bob"
+        assert rows[0][0] == "Alice"
+        assert rows[1][0] == "Bob"
     finally:
         drop_catalog(sr_conn, sqlite_cat)
         drop_catalog(sr_conn, mysql_cat)

@@ -19,7 +19,7 @@ _ARCH_MAP: dict[str, str] = {
     "arm64": "arm64",
 }
 
-_ALL_DRIVER_NAMES = ("sqlite", "flightsql", "postgresql", "duckdb")
+_ALL_DRIVER_NAMES = ("sqlite", "flightsql", "postgresql", "duckdb", "mysql")
 
 
 def _arch_key() -> str:

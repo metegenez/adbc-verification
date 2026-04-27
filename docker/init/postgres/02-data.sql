@@ -58,9 +58,9 @@ ON CONFLICT (l_orderkey, l_linenumber) DO NOTHING;
 
 -- 5 parts
 INSERT INTO part VALUES
-(1, 'goldenrod lace spring', 'Manufacturer#1', 'Brand#13', 'PROMO BURNISHED COPPER', 7, 'JUMBO PKG', 901.00, 'furiously regular requests'),
-(2, 'blush forest saddle', 'Manufacturer#1', 'Brand#13', 'LARGE BRUSHED BRASS', 1, 'LG CASE', 902.00, 'lar accounts with the special instructions'),
-(3, 'dark green antique puff', 'Manufacturer#4', 'Brand#42', 'STANDARD POLISHED BRASS', 21, 'WRAP CASE', 903.00, 'dual pinto beans against the'),
+(1, 'goldenrod lace spring', 'Manufacturer#1', 'Brand#13', 'PROMO BURNISHED COPPER', 7, 'JUMBO PKG', 901.00, 'furiously reg requests'),
+(2, 'blush forest saddle', 'Manufacturer#1', 'Brand#13', 'LARGE BRUSHED BRASS', 1, 'LG CASE', 902.00, 'lar accounts with the'),
+(3, 'dark green antique puff', 'Manufacturer#4', 'Brand#42', 'STANDARD POLISHED BRASS', 21, 'WRAP CASE', 903.00, 'dual pinto beans'),
 (4, 'hot lace khaki', 'Manufacturer#3', 'Brand#34', 'SMALL PLATED BRASS', 14, 'MED BAG', 904.00, 'the stealthy requests'),
 (5, 'spring indian chiffon', 'Manufacturer#3', 'Brand#35', 'PROMO BRUSHED STEEL', 7, 'SM PKG', 905.00, 'c deposits boost slyly')
 ON CONFLICT (p_partkey) DO NOTHING;
@@ -94,9 +94,9 @@ ON CONFLICT (c_custkey) DO NOTHING;
 
 -- 3 test_data rows
 INSERT INTO test_data VALUES
-(1, 'alice', 10.5),
-(2, 'bob', 20.3),
-(3, 'charlie', 30.1)
+(1, 'Alice', 10.5),
+(2, 'Bob', 20.3),
+(3, 'Charlie', 30.1)
 ON CONFLICT (id) DO NOTHING;
 
 -- 3 departments (cross-join)

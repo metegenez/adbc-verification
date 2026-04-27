@@ -46,11 +46,11 @@ DUCKDB_TPCH_DB = "/opt/starrocks/data/tpch_duckdb.db"
 
 FLIGHTSQL_CA_CERT = os.environ.get(
     "FLIGHTSQL_CA_CERT",
-    os.path.join(os.path.dirname(__file__), "docker", "certs", "flightsql-ca.pem"),
+    "/opt/starrocks/certs/flightsql-ca.pem",
 )
 POSTGRES_CA_CERT = os.environ.get(
     "POSTGRES_CA_CERT",
-    os.path.join(os.path.dirname(__file__), "docker", "certs", "postgres-ca.pem"),
+    "/opt/starrocks/certs/postgres-ca.pem",
 )
 
 
@@ -138,7 +138,12 @@ def postgres_port() -> int:
 
 @pytest.fixture(scope="session")
 def sqlflite_tls() -> tuple[int, str]:
-    """Return ``(port, ca_cert_path)`` for sr-flightsql-tls service."""
+    """Return ``(port, ca_cert_path)`` for sr-flightsql-tls service.
+    
+    The cert file is mounted at /opt/starrocks/certs/ in the sr-main container.
+    When used with file:// prefix in create_adbc_catalog, StarRocks FE reads
+    the cert from the container filesystem (not the host).
+    """
     return (31337, FLIGHTSQL_CA_CERT)
 
 
