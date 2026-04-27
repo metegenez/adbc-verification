@@ -27,10 +27,14 @@ Requirements for the Docker Compose transformation. Each maps to a roadmap phase
 
 ### Developer Experience
 
-- [ ] **DC-07**: Ship → verify → retest loop script: rebuild DEB in StarRocks repo, copy into `docker/`, `docker compose up --build`, run tests, report results. One command for the full cycle
-- [ ] **DC-08**: Log capture on failure that pulls container logs (FE, BE, all backend services) into the test report. Extended from existing `capture_on_failure` fixture
-- [ ] **DC-09**: CLI runner (`run-verify.sh`) that accepts .deb paths and orchestrates the full test cycle (up with healthcheck wait, test, report, optional down)
-- [ ] **DC-10**: Fast iteration path: documented subset test mode (`pytest -k flightsql`) combined with container reuse (reuse running Compose services when DEB hasn't changed)
+- [x] **DC-07
+**: Ship → verify → retest loop script: rebuild DEB in StarRocks repo, copy into `docker/`, `docker compose up --build`, run tests, report results. One command for the full cycle
+- [x] **DC-08
+**: Log capture on failure that pulls container logs (FE, BE, all backend services) into the test report. Extended from existing `capture_on_failure` fixture
+- [x] **DC-09
+**: CLI runner (`run-verify.sh`) that accepts .deb paths and orchestrates the full test cycle (up with healthcheck wait, test, report, optional down)
+- [x] **DC-10
+**: Fast iteration path: documented subset test mode (`pytest -k flightsql`) combined with container reuse (reuse running Compose services when DEB hasn't changed)
 
 ### Multi-Driver Validation (Existing — Adapted)
 
