@@ -20,8 +20,10 @@ Requirements for the Docker Compose transformation. Each maps to a roadmap phase
 
 ### TPC-H Depth
 
-- [ ] **DC-05**: TPC-H schema and seed data loaded into all five backends (PostgreSQL, MySQL, FlightSQL/SQLite, DuckDB .db, SQLite .db). Queries stored as standalone SQL files in `queries/` directory, runnable against catalogs with driver-specific catalog mapping
-- [ ] **DC-06**: Cross-driver join test corpus adapted to Docker service names. Queries that JOIN tables across different ADBC backends (e.g., `sr_flightsql.tpch.orders` JOIN `sr_postgres.tpch.lineitem`) run end-to-end
+- [x] **DC-05
+**: TPC-H schema and seed data loaded into all five backends (PostgreSQL, MySQL, FlightSQL/SQLite, DuckDB .db, SQLite .db). Queries stored as standalone SQL files in `queries/` directory, runnable against catalogs with driver-specific catalog mapping
+- [x] **DC-06
+**: Cross-driver join test corpus adapted to Docker service names. Queries that JOIN tables across different ADBC backends (e.g., `sr_flightsql.tpch.orders` JOIN `sr_postgres.tpch.lineitem`) run end-to-end
 
 ### Developer Experience
 
@@ -44,7 +46,8 @@ These are the inherited test modules from the existing suite. They must pass aga
 **: PostgreSQL catalog lifecycle, data round-trip, SHOW TABLES, errors, TLS, passthrough (6 tests)
 - [x] **VAL-05
 **: FlightSQL catalog lifecycle, data round-trip, TLS, auth, passthrough (5 tests)
-- [ ] **VAL-06**: Cross-driver JOIN tests across heterogeneous backends (2 tests)
+- [x] **VAL-06
+**: Cross-driver JOIN tests across heterogeneous backends (2 tests)
 - [x] **VAL-07
 **: Negative/validation error path coverage for all PROP/VAL rules (7 tests)
 
