@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 reports/
 .pytest_cache/
+
+# Build artifacts
+docker/starrocks-*.deb
+docker/drivers/
+
+# Generated SQLite/DuckDB databases
+docker/data/*.db

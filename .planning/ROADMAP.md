@@ -35,3 +35,21 @@ Phase 1 executes plans sequentially: 01-01 → 01-02 → 01-03
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Docker Compose Verification Suite | 0/3 | Not started | - |
+
+### Phase 2: PostgreSQL and MySQL TPC-H SF1 Data Loading and Queries
+
+**Goal:** Replace TPC-H seed data (5 rows/table) in PostgreSQL and MySQL backends with full Scale Factor 1 data (~1GB, 8M+ total rows), and define all 22 TPC-H benchmark queries as externalized SQL files that execute correctly through the StarRocks ADBC catalog layer.
+
+**Depends on:** Phase 1 (Docker Compose foundation)
+**Requirements:** TPC-SF1-01, TPC-SF1-02, TPC-SF1-03, TPC-SF1-04
+
+**Success Criteria** (what must be TRUE):
+  1. User runs `cd docker && python generate-sf1-data.py` and 8 CSV files (`region.csv` through `lineitem.csv`) are generated in `docker/data/sf1/` with correct TPC-H SF1 row counts (5, 25, 10K, 200K, 800K, 150K, 1.5M, 6M).
+  2. User runs `docker compose up` and PostgreSQL + MySQL containers load SF1 data at startup via COPY/LOAD DATA. Querying `SELECT count(*) FROM lineitem` through StarRocks returns ~6M rows.
+  3. User runs `pytest tests/test_queries.py -v` and all 44 TPC-H query files (22 for PostgreSQL, 22 for MySQL) execute through the ADBC catalog layer and return expected row counts.
+  4. All 35 existing Phase 1 tests continue to pass after SF1 data is loaded.
+  5. Restarting or re-creating containers does not duplicate SF1 data (init scripts are idempotent).
+**Plans:** 1 plan
+
+Plans:
+- [ ] 02-01: TPC-H SF1 Data Loading and 22-Query Corpus — Python SF1 CSV generator (`docker/generate-sf1-data.py`), rewritten PostgreSQL/MySQL init scripts with COPY/LOAD DATA, 44 TPC-H query SQL files across both backends, docker-compose.yml volume mounts for SF1 data, integration verification run **(TPC-SF1-01, TPC-SF1-02, TPC-SF1-03, TPC-SF1-04)**
