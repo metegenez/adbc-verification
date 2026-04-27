@@ -1,0 +1,93 @@
+services:
+  sr-main:
+    build: .
+    container_name: sr-main
+    ports:
+      - "9030:9030"
+    networks:
+      - sr-net
+    depends_on:
+      sr-postgres:
+        condition: service_healthy
+      sr-mysql:
+        condition: service_healthy
+      sr-flightsql:
+        condition: service_healthy
+      sr-flightsql-tls:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysql", "-uroot", "-h127.0.0.1", "-P9030", "-e", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 60s
+
+  sr-postgres:
+    image: postgres:16
+    container_name: sr-postgres
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: testdb
+    volumes:
+      - ./init/postgres/:/docker-entrypoint-initdb.d/:ro
+    networks:
+      - sr-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  sr-mysql:
+    image: mysql:8.0
+    container_name: sr-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: testpass
+      MYSQL_DATABASE: testdb
+    volumes:
+      - ./init/mysql/:/docker-entrypoint-initdb.d/:ro
+    networks:
+      - sr-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-uroot", "-ptestpass", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  sr-flightsql:
+    image: voltrondata/sqlflite:latest
+    container_name: sr-flightsql
+    environment:
+      TLS_ENABLED: "0"
+      SQLFLITE_PASSWORD: sqlflite_password
+      PRINT_QUERIES: "1"
+    networks:
+      - sr-net
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "31337"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  sr-flightsql-tls:
+    image: voltrondata/sqlflite:latest
+    container_name: sr-flightsql-tls
+    environment:
+      TLS_ENABLED: "1"
+      SQLFLITE_PASSWORD: sqlflite_password
+      PRINT_QUERIES: "1"
+    networks:
+      - sr-net
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "31337"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+networks:
+  sr-net:
+    driver: bridge
