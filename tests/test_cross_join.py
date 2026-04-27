@@ -61,14 +61,10 @@ def test_sqlite_postgres_join(
         rows = execute_sql(
             sr_conn,
             f"""
-            SELECT e.customer, d.dept_name
-            FROM {sqlite_cat}.main.orders e
-            JOIN {pg_cat}.public.departments d
-              ON CASE
-                WHEN e.customer = 'Alice' THEN 10
-                WHEN e.customer = 'Bob' THEN 20
-              END = d.dept_id
-            ORDER BY e.customer
+            SELECT e.name, d.dept_name
+            FROM {sqlite_cat}.main.employees e
+            JOIN {pg_cat}.public.departments d ON e.dept_id = d.dept_id
+            ORDER BY e.name
             """,
         )
 
@@ -78,6 +74,11 @@ def test_sqlite_postgres_join(
 
         row_names = [r[0] for r in rows]
         assert "Alice" in row_names, f"Expected 'Alice' in results, got {row_names}"
+
+        alice_rows = [r for r in rows if r[0] == "Alice"]
+        assert alice_rows[0][1] == "Engineering", (
+            f"Expected Alice in Engineering, got {alice_rows[0]}"
+        )
 
     finally:
         drop_catalog(sr_conn, pg_cat)
@@ -90,9 +91,9 @@ def test_sqlite_postgres_join(
 
 @pytest.mark.cross_join
 def test_two_sqlite_catalogs_join(sr_conn, sqlite_driver_path):
-    """JOIN orders (SQLite A) with customers (SQLite B) through StarRocks.
+    """JOIN employees (SQLite A) with customers (SQLite B) through StarRocks.
 
-    Uses pre-baked cross_sqlite_a.db (orders) and cross_sqlite_b.db (customers).
+    Uses pre-baked cross_sqlite_a.db (employees) and cross_sqlite_b.db (customers).
     """
     cat_a = "cross_a_cat"
     cat_b = "cross_b_cat"
@@ -113,20 +114,18 @@ def test_two_sqlite_catalogs_join(sr_conn, sqlite_driver_path):
         rows = execute_sql(
             sr_conn,
             f"""
-            SELECT o.customer, o.amount, c.city
-            FROM {cat_a}.main.orders o
-            JOIN {cat_b}.main.customers c ON o.customer = c.name
-            ORDER BY o.customer
+            SELECT e.name, c.city
+            FROM {cat_a}.main.employees e
+            JOIN {cat_b}.main.customers c ON e.name = c.name
+            ORDER BY e.name
             """,
         )
 
         assert len(rows) == 2, f"Expected 2 joined rows, got {len(rows)}: {rows}"
         assert rows[0][0] == "Alice", f"Expected 'Alice', got {rows[0][0]}"
-        assert abs(float(rows[0][1]) - 100.0) < 0.01
-        assert rows[0][2] == "NYC", f"Expected 'NYC', got {rows[0][2]}"
+        assert rows[0][1] == "NYC", f"Expected 'NYC', got {rows[0][1]}"
         assert rows[1][0] == "Bob", f"Expected 'Bob', got {rows[1][0]}"
-        assert abs(float(rows[1][1]) - 200.0) < 0.01
-        assert rows[1][2] == "SF", f"Expected 'SF', got {rows[1][2]}"
+        assert rows[1][1] == "SF", f"Expected 'SF', got {rows[1][1]}"
 
     finally:
         drop_catalog(sr_conn, cat_b)
