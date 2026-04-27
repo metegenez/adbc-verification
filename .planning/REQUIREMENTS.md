@@ -71,25 +71,25 @@ Deferred to future release. Not in current roadmap.
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| DC-01 | Phase 1: Docker Compose Foundation | Pending |
-| DC-02 | Phase 1: Docker Compose Foundation | Pending |
-| DC-03 | Phase 1: Docker Compose Foundation | Pending |
-| DC-04 | Phase 1: Docker Compose Foundation | Pending |
-| DC-05 | Phase 2: TPC-H Depth | Pending |
-| DC-06 | Phase 2: TPC-H Depth | Pending |
-| DC-07 | Phase 3: Developer Experience | Pending |
-| DC-08 | Phase 3: Developer Experience | Pending |
-| DC-09 | Phase 3: Developer Experience | Pending |
-| DC-10 | Phase 3: Developer Experience | Pending |
-| VAL-01 | Phase 1: Docker Compose Foundation | Pending |
-| VAL-02 | Phase 1: Docker Compose Foundation | Pending |
-| VAL-03 | Phase 1: Docker Compose Foundation | Pending |
-| VAL-04 | Phase 1: Docker Compose Foundation | Pending |
-| VAL-05 | Phase 1: Docker Compose Foundation | Pending |
-| VAL-06 | Phase 2: TPC-H Depth | Pending |
-| VAL-07 | Phase 1: Docker Compose Foundation | Pending |
+| Requirement | Phase | Plan | Status |
+|-------------|-------|------|--------|
+| DC-01 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| DC-02 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| DC-03 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| DC-04 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| DC-05 | Phase 1: Docker Compose Verification Suite | 01-02 | Pending |
+| DC-06 | Phase 1: Docker Compose Verification Suite | 01-02 | Pending |
+| DC-07 | Phase 1: Docker Compose Verification Suite | 01-03 | Pending |
+| DC-08 | Phase 1: Docker Compose Verification Suite | 01-03 | Pending |
+| DC-09 | Phase 1: Docker Compose Verification Suite | 01-03 | Pending |
+| DC-10 | Phase 1: Docker Compose Verification Suite | 01-03 | Pending |
+| VAL-01 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| VAL-02 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| VAL-03 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| VAL-04 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| VAL-05 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| VAL-06 | Phase 1: Docker Compose Verification Suite | 01-02 | Pending |
+| VAL-07 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
@@ -98,4 +98,4 @@ Deferred to future release. Not in current roadmap.
 
 ---
 *Requirements defined: 2026-04-27*
-*Last updated: 2026-04-27 after initial definition*
+*Last updated: 2026-04-27 after roadmap creation*
