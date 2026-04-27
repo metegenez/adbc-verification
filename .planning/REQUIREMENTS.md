@@ -9,10 +9,14 @@ Requirements for the Docker Compose transformation. Each maps to a roadmap phase
 
 ### Docker Compose Foundation
 
-- [ ] **DC-01**: Docker Compose file that packages StarRocks (from shipped DEB) + all backend data sources as named services on a Docker bridge network
-- [ ] **DC-02**: StarRocks container built from shipped `.deb`, with FE+BE co-located, all five ADBC drivers pre-installed at `/opt/starrocks/drivers/`, and a working entrypoint script
-- [ ] **DC-03**: Backend data containers (PostgreSQL, MySQL, FlightSQL/SQLite) with test data pre-loaded at startup via init SQL volume mounts. DuckDB and SQLite `.db` files baked into the StarRocks container image
-- [ ] **DC-04**: Pytest conftest adapted to use Docker Compose service names for cross-container URIs instead of host-loopback ports. `lib/docker_backends.py` and `lib/starrocks.py` retired in favor of Compose service management
+- [x] **DC-01
+**: Docker Compose file that packages StarRocks (from shipped DEB) + all backend data sources as named services on a Docker bridge network
+- [x] **DC-02
+**: StarRocks container built from shipped `.deb`, with FE+BE co-located, all five ADBC drivers pre-installed at `/opt/starrocks/drivers/`, and a working entrypoint script
+- [x] **DC-03
+**: Backend data containers (PostgreSQL, MySQL, FlightSQL/SQLite) with test data pre-loaded at startup via init SQL volume mounts. DuckDB and SQLite `.db` files baked into the StarRocks container image
+- [x] **DC-04
+**: Pytest conftest adapted to use Docker Compose service names for cross-container URIs instead of host-loopback ports. `lib/docker_backends.py` and `lib/starrocks.py` retired in favor of Compose service management
 
 ### TPC-H Depth
 
@@ -30,13 +34,19 @@ Requirements for the Docker Compose transformation. Each maps to a roadmap phase
 
 These are the inherited test modules from the existing suite. They must pass against the Docker Compose environment after conftest adaptation.
 
-- [ ] **VAL-01**: SQLite catalog lifecycle, data round-trip, error paths (6 tests)
-- [ ] **VAL-02**: DuckDB catalog lifecycle, data round-trip, entrypoint, pass-through (4 tests)
-- [ ] **VAL-03**: MySQL catalog lifecycle, data round-trip, SHOW TABLES, errors, cross-join (5 tests)
-- [ ] **VAL-04**: PostgreSQL catalog lifecycle, data round-trip, SHOW TABLES, errors, TLS, passthrough (6 tests)
-- [ ] **VAL-05**: FlightSQL catalog lifecycle, data round-trip, TLS, auth, passthrough (5 tests)
+- [x] **VAL-01
+**: SQLite catalog lifecycle, data round-trip, error paths (6 tests)
+- [x] **VAL-02
+**: DuckDB catalog lifecycle, data round-trip, entrypoint, pass-through (4 tests)
+- [x] **VAL-03
+**: MySQL catalog lifecycle, data round-trip, SHOW TABLES, errors, cross-join (5 tests)
+- [x] **VAL-04
+**: PostgreSQL catalog lifecycle, data round-trip, SHOW TABLES, errors, TLS, passthrough (6 tests)
+- [x] **VAL-05
+**: FlightSQL catalog lifecycle, data round-trip, TLS, auth, passthrough (5 tests)
 - [ ] **VAL-06**: Cross-driver JOIN tests across heterogeneous backends (2 tests)
-- [ ] **VAL-07**: Negative/validation error path coverage for all PROP/VAL rules (7 tests)
+- [x] **VAL-07
+**: Negative/validation error path coverage for all PROP/VAL rules (7 tests)
 
 ## v2 Requirements
 
