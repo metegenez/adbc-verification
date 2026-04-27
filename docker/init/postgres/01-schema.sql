@@ -26,6 +26,48 @@ CREATE TABLE IF NOT EXISTS orders (
     o_comment VARCHAR(79)
 );
 
+CREATE TABLE IF NOT EXISTS part (
+    p_partkey INTEGER PRIMARY KEY,
+    p_name VARCHAR(55) NOT NULL,
+    p_mfgr VARCHAR(25) NOT NULL,
+    p_brand VARCHAR(10) NOT NULL,
+    p_type VARCHAR(25) NOT NULL,
+    p_size INTEGER NOT NULL,
+    p_container VARCHAR(10) NOT NULL,
+    p_retailprice DECIMAL(15,2) NOT NULL,
+    p_comment VARCHAR(23)
+);
+
+CREATE TABLE IF NOT EXISTS supplier (
+    s_suppkey INTEGER PRIMARY KEY,
+    s_name VARCHAR(25) NOT NULL,
+    s_address VARCHAR(40) NOT NULL,
+    s_nationkey INTEGER NOT NULL,
+    s_phone VARCHAR(15) NOT NULL,
+    s_acctbal DECIMAL(15,2) NOT NULL,
+    s_comment VARCHAR(101)
+);
+
+CREATE TABLE IF NOT EXISTS partsupp (
+    ps_partkey INTEGER NOT NULL,
+    ps_suppkey INTEGER NOT NULL,
+    ps_availqty INTEGER NOT NULL,
+    ps_supplycost DECIMAL(15,2) NOT NULL,
+    ps_comment VARCHAR(199),
+    PRIMARY KEY (ps_partkey, ps_suppkey)
+);
+
+CREATE TABLE IF NOT EXISTS customer (
+    c_custkey INTEGER PRIMARY KEY,
+    c_name VARCHAR(25) NOT NULL,
+    c_address VARCHAR(40) NOT NULL,
+    c_nationkey INTEGER NOT NULL,
+    c_phone VARCHAR(15) NOT NULL,
+    c_acctbal DECIMAL(15,2) NOT NULL,
+    c_mktsegment VARCHAR(10) NOT NULL,
+    c_comment VARCHAR(117)
+);
+
 CREATE TABLE IF NOT EXISTS lineitem (
     l_orderkey INTEGER NOT NULL,
     l_partkey INTEGER NOT NULL,

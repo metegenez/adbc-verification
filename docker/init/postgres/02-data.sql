@@ -56,6 +56,42 @@ INSERT INTO lineitem VALUES
 (4, 880, 81, 1, 30.00, 53850.40, 0.03, 0.08, 'N', 'O', '1996-01-10', '1995-12-14', '1996-01-18', 'DELIVER IN PERSON', 'REG AIR', 'sly final accounts according to the')
 ON CONFLICT (l_orderkey, l_linenumber) DO NOTHING;
 
+-- 5 parts
+INSERT INTO part VALUES
+(1, 'goldenrod lace spring', 'Manufacturer#1', 'Brand#13', 'PROMO BURNISHED COPPER', 7, 'JUMBO PKG', 901.00, 'furiously regular requests'),
+(2, 'blush forest saddle', 'Manufacturer#1', 'Brand#13', 'LARGE BRUSHED BRASS', 1, 'LG CASE', 902.00, 'lar accounts with the special instructions'),
+(3, 'dark green antique puff', 'Manufacturer#4', 'Brand#42', 'STANDARD POLISHED BRASS', 21, 'WRAP CASE', 903.00, 'dual pinto beans against the'),
+(4, 'hot lace khaki', 'Manufacturer#3', 'Brand#34', 'SMALL PLATED BRASS', 14, 'MED BAG', 904.00, 'the stealthy requests'),
+(5, 'spring indian chiffon', 'Manufacturer#3', 'Brand#35', 'PROMO BRUSHED STEEL', 7, 'SM PKG', 905.00, 'c deposits boost slyly')
+ON CONFLICT (p_partkey) DO NOTHING;
+
+-- 5 suppliers
+INSERT INTO supplier VALUES
+(1, 'Supplier#000000001', 'N kD4on9OM Ipw3,gf0JBoq', 17, '27-918-335-1736', 5755.94, 'final deposits among the slyly express gifts'),
+(2, 'Supplier#000000002', '89eJ5ksX3ImxJQBvxObC,', 5, '15-679-861-2259', 4032.68, 'blithely bold packages express'),
+(3, 'Supplier#000000003', 'gyCsewaC4p', 1, '11-383-516-1199', 4192.40, 'carefully final packages cajole fluffily'),
+(4, 'Supplier#000000004', 'kTGpJqO8HOrfbh', 14, '24-696-997-4969', 5300.37, 'slyly bold dependencies wake'),
+(5, 'Supplier#000000005', 'd8eFhrA8b', 9, '19-393-671-5272', 8014.30, 'closely express theodolites across the')
+ON CONFLICT (s_suppkey) DO NOTHING;
+
+-- 5 partsupps
+INSERT INTO partsupp VALUES
+(1, 2, 3325, 771.64, 'furiously even instructions. furiously ironic theodolites are green,'),
+(1, 3, 8076, 993.49, 'luffily according to the slyly regular packages. regular packages around the'),
+(2, 3, 3956, 337.09, 'carefully pending pinto beans. quickly silent packages are among the'),
+(3, 4, 4069, 905.44, 'ending packages. furiously unusual requests are fluffily'),
+(4, 3, 8895, 378.49, 'cording to the final, final theodolites. blithely final packages sleep')
+ON CONFLICT (ps_partkey, ps_suppkey) DO NOTHING;
+
+-- 5 customers
+INSERT INTO customer VALUES
+(1, 'Customer#000000001', 'IVhzIApeRb ot,c,E', 15, '25-989-741-2988', 711.56, 'BUILDING', 'furiously even instructions above the slyly silent instructions'),
+(2, 'Customer#000000002', 'XSTf4,NCwDVaWNe6tEgvw', 13, '23-768-687-3665', 121.65, 'AUTOMOBILE', 'the slyly bold accounts. quickly final instructions cajole blithely'),
+(3, 'Customer#000000003', 'MG9kdTD2WBHm', 1, '11-719-748-3364', 7498.12, 'FURNITURE', 'posits sleep slyly carefully regular frets. carefully final'),
+(4, 'Customer#000000004', 'XxVSyxsKBtn', 4, '14-128-190-5944', 2866.83, 'MACHINERY', 'ackages. accounts according to the furiously even deposits haggle'),
+(5, 'Customer#000000005', 'KvpyuHCplrB84W', 17, '27-750-860-3807', 5864.25, 'BUILDING', 'lyly express accounts. regular ideas nag slyly')
+ON CONFLICT (c_custkey) DO NOTHING;
+
 -- 3 test_data rows
 INSERT INTO test_data VALUES
 (1, 'alice', 10.5),
