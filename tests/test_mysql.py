@@ -1,17 +1,11 @@
 """MySQL backend tests for StarRocks ADBC catalog stack.
 
 Covers D-09 scenarios (lifecycle, data round-trip, show tables, negative, pass-
-through).  Uses a ``mysql:8.0`` Docker container as the backend.  Test data is
-seeded via ``docker exec mysql`` into the container.
-
-This module validates that the ADBC MySQL driver (from ADBC Driver Foundry)
-works end-to-end through StarRocks, including correct backtick identifier
-quoting detected via ``_sr_identifier_quote``.
+through). Uses the sr-mysql Docker Compose service as the backend. Test data
+is pre-loaded via MySQL init scripts.
 """
 
 from __future__ import annotations
-
-import subprocess
 
 import pytest
 import pymysql
@@ -24,50 +18,22 @@ from lib.catalog_helpers import (
 )
 
 # ---------------------------------------------------------------------------
-# MySQL connection constants
+# MySQL connection constants (Docker Compose service names)
 # ---------------------------------------------------------------------------
 
 MYSQL_USER = "root"
 MYSQL_PASS = "testpass"
 MYSQL_DB = "testdb"
-MYSQL_CONTAINER = "adbc_test_mysql"
-_MYSQL_URI = f"mysql://{MYSQL_USER}:{MYSQL_PASS}@127.0.0.1:3306/{MYSQL_DB}"
+_MYSQL_URI = f"mysql://{MYSQL_USER}:{MYSQL_PASS}@sr-mysql:3306/{MYSQL_DB}"
+
 
 # ---------------------------------------------------------------------------
-# Module-level fixture: seed test data into MySQL container
+# Module-level fixture: data is pre-loaded via init scripts — no-op fixture
 # ---------------------------------------------------------------------------
-
 
 @pytest.fixture(scope="module")
 def mysql_test_data(mysql_port):
-    """Seed test_data table into the MySQL container."""
-    seed_sql = (
-        "CREATE TABLE IF NOT EXISTS test_data"
-        "(id INT PRIMARY KEY, name VARCHAR(50), value DOUBLE);"
-        "INSERT IGNORE INTO test_data VALUES(1, 'alice', 10.5);"
-        "INSERT IGNORE INTO test_data VALUES(2, 'bob', 20.3);"
-        "INSERT IGNORE INTO test_data VALUES(3, 'charlie', 30.1);"
-    )
-    # Retry seeding — MySQL may still be initializing even after port opens
-    import time
-    for attempt in range(5):
-        result = subprocess.run(
-            [
-                "docker", "exec", MYSQL_CONTAINER,
-                "mysql", f"-u{MYSQL_USER}", f"-p{MYSQL_PASS}", MYSQL_DB,
-                "-e", seed_sql,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=15,
-        )
-        if result.returncode == 0:
-            break
-        time.sleep(3)
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Failed to seed MySQL test data after 5 attempts: {result.stderr}"
-        )
+    """Data is pre-loaded by MySQL init scripts. This fixture is a pass-through."""
     return True
 
 
@@ -106,7 +72,7 @@ def test_mysql_catalog_lifecycle(sr_conn, mysql_driver_path, mysql_port):
 
 @pytest.mark.mysql
 def test_mysql_data_roundtrip(sr_conn, mysql_driver_path, mysql_port, mysql_test_data):
-    """Insert rows into MySQL, SELECT through StarRocks ADBC catalog."""
+    """SELECT pre-loaded rows through StarRocks ADBC catalog."""
     cat = "test_mysql_rt"
     try:
         create_adbc_catalog(
@@ -170,7 +136,7 @@ def test_mysql_bad_uri(sr_conn, mysql_driver_path):
                 sr_conn,
                 catalog_name=cat,
                 driver_url=mysql_driver_path,
-                uri="mysql://baduser:badpass@127.0.0.1:59999/nodb",
+                uri="mysql://baduser:badpass@sr-mysql:3306/nodb",
             )
     finally:
         drop_catalog(sr_conn, cat)
@@ -186,22 +152,7 @@ def test_mysql_sqlite_join(
     sr_conn, mysql_driver_path, sqlite_driver_path, mysql_port, mysql_test_data
 ):
     """JOIN MySQL test_data with a SQLite orders table through StarRocks."""
-    import subprocess as sp
-
-    # Seed SQLite with orders
-    sqlite_db = "/tmp/sr_adbc_mysql_cross.db"
-    sp.run(
-        ["sqlite3", sqlite_db],
-        input=(
-            "CREATE TABLE IF NOT EXISTS orders"
-            "(id INTEGER PRIMARY KEY, customer TEXT, amount REAL);\n"
-            "INSERT OR REPLACE INTO orders VALUES(1, 'alice', 500.0);\n"
-            "INSERT OR REPLACE INTO orders VALUES(2, 'bob', 300.0);\n"
-        ),
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    cross_db = "/opt/starrocks/data/cross_sqlite_a.db"
 
     mysql_cat = "cross_mysql_cat"
     sqlite_cat = "cross_sqlite_mysql_cat"
@@ -216,7 +167,7 @@ def test_mysql_sqlite_join(
             sr_conn,
             catalog_name=sqlite_cat,
             driver_url=sqlite_driver_path,
-            uri=sqlite_db,
+            uri=cross_db,
         )
 
         rows = execute_sql(

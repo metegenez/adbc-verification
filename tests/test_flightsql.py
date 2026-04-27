@@ -1,8 +1,8 @@
 """FlightSQL backend tests for StarRocks ADBC catalog stack.
 
 Covers D-09 scenarios (lifecycle, data query, negative, pass-through) and D-11
-(TLS with self-signed certs).  Uses the voltrondata/sqlflite Docker image as
-the FlightSQL server.
+(TLS with self-signed certs). Uses the sr-flightsql and sr-flightsql-tls Docker
+Compose services.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from lib.catalog_helpers import (
     show_catalogs,
 )
 
+
 # ---------------------------------------------------------------------------
 # D-09 Scenario 1: Catalog lifecycle (non-TLS)
 # ---------------------------------------------------------------------------
@@ -30,25 +31,22 @@ def test_flightsql_catalog_lifecycle(sr_conn, flightsql_driver_path, sqlflite_po
             sr_conn,
             cat,
             driver_url=flightsql_driver_path,
-            uri=f"grpc://127.0.0.1:{sqlflite_port}",
+            uri="grpc://sr-flightsql:31337",
             extra_props={
                 "username": "sqlflite_username",
                 "password": "sqlflite_password",
             },
         )
 
-        # Catalog must appear in SHOW CATALOGS
         catalogs = show_catalogs(sr_conn)
         assert cat in catalogs, f"{cat} not found in {catalogs}"
 
-        # SHOW DATABASES FROM <catalog> must not error (may return empty)
         dbs = execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
         assert len(dbs) >= 1, f"Expected at least 1 database, got {dbs}"
 
     finally:
         drop_catalog(sr_conn, cat)
 
-    # After drop the catalog must be gone
     catalogs = show_catalogs(sr_conn)
     assert cat not in catalogs, f"{cat} still present after DROP"
 
@@ -59,27 +57,20 @@ def test_flightsql_catalog_lifecycle(sr_conn, flightsql_driver_path, sqlflite_po
 
 @pytest.mark.flightsql
 def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
-    """Discover available tables in sqlflite and query if any exist.
-
-    sqlflite starts with an empty in-memory SQLite backend.  If no tables
-    are present, the test verifies that metadata queries execute without
-    error and passes with a note.
-    """
+    """Discover available tables in sqlflite and query if any exist."""
     cat = "test_fs_rq"
     try:
         create_adbc_catalog(
             sr_conn,
             cat,
             driver_url=flightsql_driver_path,
-            uri=f"grpc://127.0.0.1:{sqlflite_port}",
+            uri="grpc://sr-flightsql:31337",
             extra_props={
                 "username": "sqlflite_username",
                 "password": "sqlflite_password",
             },
         )
 
-        # Attempt to discover tables -- sqlflite uses "main" as the default schema.
-        # The database name exposed may vary; try common patterns defensively.
         tables = []
         for db_candidate in ("main", "sqlflite", "default"):
             try:
@@ -91,7 +82,6 @@ def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
                 continue
 
         if tables:
-            # Query the first discovered table
             first_table = tables[0]
             result = execute_sql(
                 sr_conn,
@@ -99,7 +89,6 @@ def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
             )
             assert len(result) >= 1, f"Expected data from {first_table}, got {len(result)} rows"
         else:
-            # sqlflite has no pre-seeded data -- metadata query success is sufficient
             pass
 
     finally:
@@ -113,43 +102,34 @@ def test_flightsql_data_query(sr_conn, flightsql_driver_path, sqlflite_port):
 @pytest.mark.flightsql
 @pytest.mark.tls
 def test_flightsql_tls_lifecycle(sr_conn, flightsql_driver_path, sqlflite_tls):
-    """CREATE catalog with TLS, verify cert pass-through, SHOW DATABASES, DROP.
-
-    Validates that ``adbc.flight.sql.client_option.tls_root_certs`` reaches
-    the Go-based FlightSQL driver correctly (PROP-05 / PROP-09).
-    """
+    """CREATE catalog with TLS, verify cert pass-through, SHOW DATABASES, DROP."""
     tls_port, ca_cert_path = sqlflite_tls
     cat = "test_fs_tls"
-    drop_catalog(sr_conn, cat)  # clean up from any previous run
+    drop_catalog(sr_conn, cat)
     try:
         create_adbc_catalog(
             sr_conn,
             cat,
             driver_url=flightsql_driver_path,
-            uri=f"grpc+tls://127.0.0.1:{tls_port}",
+            uri=f"grpc+tls://sr-flightsql-tls:{tls_port}",
             extra_props={
                 "username": "sqlflite_username",
                 "password": "sqlflite_password",
-                # file:// prefix: FE reads the PEM file and passes content to the Go driver
                 "adbc.flight.sql.client_option.tls_root_certs": f"file://{ca_cert_path}",
                 "adbc.flight.sql.client_option.tls_skip_verify": "true",
             },
         )
 
-        # Creation succeeded -- TLS cert pass-through works.
         catalogs = show_catalogs(sr_conn)
         assert cat in catalogs, f"{cat} not in catalogs after TLS create"
 
-        # SHOW DATABASES must not error
         dbs = execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
         assert len(dbs) >= 1, f"Expected at least 1 database, got {dbs}"
 
-        # Query data through BE over TLS -- sqlflite has TPC-H data loaded
         tables = execute_sql(sr_conn, f"SHOW TABLES FROM {cat}.main")
         table_names = [row[0] for row in tables]
         assert len(table_names) >= 1, f"Expected tables in TLS catalog, got {table_names}"
 
-        # SELECT through the BE ADBC scanner over TLS
         first_table = table_names[0]
         rows = execute_sql(sr_conn, f"SELECT * FROM {cat}.main.{first_table} LIMIT 3")
         assert len(rows) >= 1, (
@@ -166,11 +146,7 @@ def test_flightsql_tls_lifecycle(sr_conn, flightsql_driver_path, sqlflite_tls):
 
 @pytest.mark.flightsql
 def test_flightsql_wrong_password(sr_conn, flightsql_driver_path, sqlflite_port):
-    """Wrong password must cause an error at catalog creation or query time.
-
-    Some ADBC drivers defer authentication to query time, so CREATE CATALOG
-    may succeed.  We assert that an error surfaces at *some* point.
-    """
+    """Wrong password must cause an error at catalog creation or query time."""
     cat = "test_fs_wp"
     create_succeeded = False
     try:
@@ -179,7 +155,7 @@ def test_flightsql_wrong_password(sr_conn, flightsql_driver_path, sqlflite_port)
                 sr_conn,
                 cat,
                 driver_url=flightsql_driver_path,
-                uri=f"grpc://127.0.0.1:{sqlflite_port}",
+                uri="grpc://sr-flightsql:31337",
                 extra_props={
                     "username": "sqlflite_username",
                     "password": "wrong_password",
@@ -187,10 +163,8 @@ def test_flightsql_wrong_password(sr_conn, flightsql_driver_path, sqlflite_port)
             )
             create_succeeded = True
         except pymysql.err.DatabaseError:
-            # Error at creation time -- authentication check was eager.
             return
 
-        # CREATE succeeded -- authentication is deferred; query must fail.
         with pytest.raises(pymysql.err.DatabaseError):
             execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
 
@@ -204,18 +178,14 @@ def test_flightsql_wrong_password(sr_conn, flightsql_driver_path, sqlflite_port)
 
 @pytest.mark.flightsql
 def test_flightsql_adbc_passthrough(sr_conn, flightsql_driver_path, sqlflite_port):
-    """Verify that an arbitrary ``adbc.*`` property is forwarded without error.
-
-    Uses ``adbc.flight.sql.rpc.call_header.x-custom-header`` -- a valid
-    FlightSQL driver option that sets a custom gRPC call header.
-    """
+    """Verify that an arbitrary ``adbc.*`` property is forwarded without error."""
     cat = "test_fs_pt"
     try:
         create_adbc_catalog(
             sr_conn,
             cat,
             driver_url=flightsql_driver_path,
-            uri=f"grpc://127.0.0.1:{sqlflite_port}",
+            uri="grpc://sr-flightsql:31337",
             extra_props={
                 "username": "sqlflite_username",
                 "password": "sqlflite_password",
@@ -223,7 +193,6 @@ def test_flightsql_adbc_passthrough(sr_conn, flightsql_driver_path, sqlflite_por
             },
         )
 
-        # If we reach here the pass-through did not cause an error.
         catalogs = show_catalogs(sr_conn)
         assert cat in catalogs
 

@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
-import tempfile
-
 import pymysql
 import pytest
 
@@ -12,32 +9,16 @@ from lib.catalog_helpers import create_adbc_catalog, drop_catalog, execute_sql, 
 
 
 # ---------------------------------------------------------------------------
-# Module-level fixture: pre-populate a SQLite database file with test data
+# Module-level fixture: pre-populated SQLite database file path
 # ---------------------------------------------------------------------------
+
+TEST_DB_PATH = "/opt/starrocks/data/test_sqlite.db"
+
 
 @pytest.fixture(scope="module")
 def sqlite_test_db() -> str:
-    """Create a SQLite database at /tmp/sr_adbc_test_sqlite.db with test rows.
-
-    Returns the absolute path to the database file.
-    """
-    db_path = "/tmp/sr_adbc_test_sqlite.db"
-    sql = (
-        "CREATE TABLE IF NOT EXISTS test_data"
-        "(id INTEGER PRIMARY KEY, name TEXT, value REAL);\n"
-        "INSERT OR REPLACE INTO test_data VALUES(1, 'alice', 10.5);\n"
-        "INSERT OR REPLACE INTO test_data VALUES(2, 'bob', 20.3);\n"
-        "INSERT OR REPLACE INTO test_data VALUES(3, 'charlie', 30.1);\n"
-    )
-    result = subprocess.run(
-        ["sqlite3", db_path],
-        input=sql,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    assert result.returncode == 0, f"sqlite3 setup failed: {result.stderr}"
-    return db_path
+    """Return the path to the pre-baked SQLite test database in the container."""
+    return TEST_DB_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -53,17 +34,14 @@ def test_sqlite_catalog_lifecycle(sr_conn, sqlite_driver_path):
             sr_conn,
             catalog_name=cat,
             driver_url=sqlite_driver_path,
-            uri="/tmp/sr_adbc_test_sqlite_lc.db",
+            uri="/opt/starrocks/data/test_sqlite_lc.db",
         )
-        # Catalog must appear in SHOW CATALOGS
         catalogs = show_catalogs(sr_conn)
         assert cat in catalogs, f"Expected '{cat}' in {catalogs}"
 
-        # SHOW DATABASES must return at least one result (SQLite always has 'main')
         dbs = execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
         assert len(dbs) >= 1, f"Expected at least 1 database, got {len(dbs)}"
 
-        # Drop and verify removal
         drop_catalog(sr_conn, cat)
         catalogs_after = show_catalogs(sr_conn)
         assert cat not in catalogs_after, f"'{cat}' still in catalogs after drop"
@@ -77,7 +55,7 @@ def test_sqlite_catalog_lifecycle(sr_conn, sqlite_driver_path):
 
 @pytest.mark.sqlite
 def test_sqlite_data_roundtrip(sr_conn, sqlite_driver_path, sqlite_test_db):
-    """Insert rows into SQLite file, SELECT through StarRocks ADBC catalog."""
+    """SELECT rows from pre-baked SQLite file through StarRocks ADBC catalog."""
     cat = "test_sqlite_rt"
     try:
         create_adbc_catalog(
@@ -92,12 +70,10 @@ def test_sqlite_data_roundtrip(sr_conn, sqlite_driver_path, sqlite_test_db):
         )
         assert len(rows) == 3, f"Expected 3 rows, got {len(rows)}"
 
-        # First row: id=1, name='alice', value~10.5
         assert rows[0][0] == 1
         assert rows[0][1] == "alice"
         assert abs(float(rows[0][2]) - 10.5) < 0.01
 
-        # Third row: id=3, name='charlie'
         assert rows[2][0] == 3
         assert rows[2][1] == "charlie"
     finally:
@@ -110,7 +86,7 @@ def test_sqlite_data_roundtrip(sr_conn, sqlite_driver_path, sqlite_test_db):
 
 @pytest.mark.sqlite
 def test_sqlite_show_tables(sr_conn, sqlite_driver_path, sqlite_test_db):
-    """SHOW TABLES lists the test_data table created by the fixture."""
+    """SHOW TABLES lists the test_data table from the pre-baked database."""
     cat = "test_sqlite_st"
     try:
         create_adbc_catalog(
@@ -147,7 +123,6 @@ def test_sqlite_bad_driver_url(sr_conn):
                 driver_url="/nonexistent/path/libfake.so",
                 uri=":memory:",
             )
-        # Error should reference the bad path (VAL-03)
         err_msg = str(exc_info.value)
         assert "/nonexistent/path/libfake.so" in err_msg or "libfake" in err_msg, (
             f"Error message should reference the bad driver path, got: {err_msg}"
@@ -175,7 +150,6 @@ def test_sqlite_unknown_top_level_key(sr_conn, sqlite_driver_path):
                 driver_url=sqlite_driver_path,
                 extra_props={"bogus_key": "bogus_val"},
             )
-        # VAL-04: error message must name the unknown key
         err_msg = str(exc_info.value)
         assert "bogus_key" in err_msg, (
             f"Error message should contain 'bogus_key', got: {err_msg}"
@@ -190,12 +164,7 @@ def test_sqlite_unknown_top_level_key(sr_conn, sqlite_driver_path):
 
 @pytest.mark.sqlite
 def test_sqlite_adbc_passthrough(sr_conn, sqlite_driver_path):
-    """adbc.* options are forwarded to the driver (not rejected by StarRocks validation).
-
-    The driver itself may reject unknown adbc.* options — that's fine. The test
-    verifies that StarRocks forwards the option (error comes from the driver,
-    not from StarRocks property validation).
-    """
+    """adbc.* options are forwarded to the driver (not rejected by StarRocks validation)."""
     cat = "test_sqlite_pt"
     try:
         try:
@@ -206,11 +175,8 @@ def test_sqlite_adbc_passthrough(sr_conn, sqlite_driver_path):
                 uri=":memory:",
                 extra_props={"adbc.sqlite.load_extension.enabled": "false"},
             )
-            # Option accepted by driver — pass-through confirmed
         except pymysql.err.ProgrammingError as e:
             err_msg = str(e)
-            # If error comes from the driver (contains driver-specific text),
-            # that proves StarRocks forwarded the option — pass-through works
             assert "Unknown database option" in err_msg or "SQLite" in err_msg, (
                 f"Expected driver-level rejection, got StarRocks validation error: {err_msg}"
             )

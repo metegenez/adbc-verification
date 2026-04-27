@@ -1,3 +1,7 @@
+# NOTE: This module is used at build time to discover host .so paths for
+# copying into docker/drivers/. At runtime, driver paths are fixed constants
+# in conftest.py.
+
 """Parse dbc TOML manifests to resolve ADBC driver .so paths."""
 
 from __future__ import annotations

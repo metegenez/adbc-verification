@@ -1,3 +1,6 @@
+# DEPRECATED: Containers are managed by docker compose (docker/docker-compose.yml).
+# This module is no longer used. Will be removed in a cleanup pass.
+
 """Docker container lifecycle helpers for ADBC test backends."""
 
 from __future__ import annotations

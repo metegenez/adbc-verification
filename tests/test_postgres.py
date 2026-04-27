@@ -1,13 +1,11 @@
 """PostgreSQL backend tests for StarRocks ADBC catalog stack.
 
 Covers D-09 scenarios (lifecycle, data round-trip, show tables, negative, pass-
-through).  Uses a ``postgres:16`` Docker container as the backend.  Test data
-is seeded via ``docker exec psql`` into the container.
+through). Uses the sr-postgres Docker Compose service as the backend. Test data
+is pre-loaded via PostgreSQL init scripts.
 """
 
 from __future__ import annotations
-
-import subprocess
 
 import pytest
 import pymysql
@@ -20,49 +18,24 @@ from lib.catalog_helpers import (
 )
 
 # ---------------------------------------------------------------------------
-# PostgreSQL connection constants
+# PostgreSQL connection constants (Docker Compose service names)
 # ---------------------------------------------------------------------------
 
 PG_USER = "testuser"
 PG_PASS = "testpass"
 PG_DB = "testdb"
-PG_CONTAINER = "adbc_test_postgres"
 
-_PG_URI = "postgresql://testuser:testpass@127.0.0.1:5432/testdb"
+_PG_URI = f"postgresql://{PG_USER}:{PG_PASS}@sr-postgres:5432/{PG_DB}"
 
 
 # ---------------------------------------------------------------------------
-# Module-level fixture: seed test data via docker exec psql
+# Module-level fixture: data is pre-loaded via init scripts — no-op fixture
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
 def postgres_test_data(postgres_port):
-    """Seed test data into the PostgreSQL container.
-
-    Creates a ``test_data`` table with 3 rows.  Idempotent -- uses
-    ``CREATE TABLE IF NOT EXISTS`` and ``ON CONFLICT DO NOTHING``.
-    """
-    seed_sql = (
-        "CREATE TABLE IF NOT EXISTS test_data"
-        "(id INTEGER PRIMARY KEY, name VARCHAR(50), value DOUBLE PRECISION);"
-        "INSERT INTO test_data VALUES(1, 'alice', 10.5) ON CONFLICT (id) DO NOTHING;"
-        "INSERT INTO test_data VALUES(2, 'bob', 20.3) ON CONFLICT (id) DO NOTHING;"
-        "INSERT INTO test_data VALUES(3, 'charlie', 30.1) ON CONFLICT (id) DO NOTHING;"
-    )
-    result = subprocess.run(
-        [
-            "docker", "exec", PG_CONTAINER,
-            "psql", "-U", PG_USER, "-d", PG_DB, "-c", seed_sql,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=15,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(
-            f"Failed to seed PostgreSQL test data: {result.stderr}"
-        )
-    return True  # signal that data is ready
+    """Data is pre-loaded by PostgreSQL init scripts. This fixture is a pass-through."""
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -81,36 +54,28 @@ def test_postgres_catalog_lifecycle(sr_conn, postgres_driver_path, postgres_port
             uri=_PG_URI,
         )
 
-        # Catalog must appear
         catalogs = show_catalogs(sr_conn)
         assert cat in catalogs, f"{cat} not found in {catalogs}"
 
-        # SHOW DATABASES -- PostgreSQL must expose at least one database
         dbs = execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
         assert len(dbs) >= 1, f"Expected at least 1 database, got {dbs}"
 
     finally:
         drop_catalog(sr_conn, cat)
 
-    # After drop
     catalogs = show_catalogs(sr_conn)
     assert cat not in catalogs, f"{cat} still present after DROP"
 
 
 # ---------------------------------------------------------------------------
-# D-09 Scenario 2: Data round-trip (seeded via docker exec psql)
+# D-09 Scenario 2: Data round-trip (pre-loaded via init scripts)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.postgres
 def test_postgres_data_roundtrip(
     sr_conn, postgres_driver_path, postgres_port, postgres_test_data,
 ):
-    """SELECT seeded rows through the StarRocks ADBC catalog.
-
-    The PostgreSQL ADBC driver may expose the schema as ``testdb`` (DB name)
-    or ``public`` (default PG schema).  We try the most likely three-part
-    name patterns defensively.
-    """
+    """SELECT pre-loaded rows through the StarRocks ADBC catalog."""
     cat = "test_pg_rt"
     try:
         create_adbc_catalog(
@@ -120,7 +85,6 @@ def test_postgres_data_roundtrip(
             uri=_PG_URI,
         )
 
-        # Try several three-part name patterns for PostgreSQL schema mapping.
         last_err: Exception | None = None
         result = None
         for fqn in (
@@ -130,7 +94,7 @@ def test_postgres_data_roundtrip(
         ):
             try:
                 result = execute_sql(sr_conn, f"SELECT * FROM {fqn} ORDER BY id")
-                break  # success
+                break
             except pymysql.err.DatabaseError as exc:
                 last_err = exc
                 continue
@@ -165,7 +129,6 @@ def test_postgres_show_tables(
             uri=_PG_URI,
         )
 
-        # PostgreSQL default schema is "public"
         rows = execute_sql(sr_conn, f"SHOW TABLES FROM {cat}.public")
         tables = [r[0] for r in rows]
         assert "test_data" in tables, f"test_data not in {tables}"
@@ -180,10 +143,7 @@ def test_postgres_show_tables(
 
 @pytest.mark.postgres
 def test_postgres_bad_uri(sr_conn, postgres_driver_path):
-    """A bogus URI must produce an error at catalog creation or query time.
-
-    Per VAL-03 the error should surface as a connection failure.
-    """
+    """A bogus URI must produce an error at catalog creation or query time."""
     cat = "test_pg_bu"
     create_succeeded = False
     try:
@@ -192,14 +152,12 @@ def test_postgres_bad_uri(sr_conn, postgres_driver_path):
                 sr_conn,
                 cat,
                 driver_url=postgres_driver_path,
-                uri="postgresql://baduser:badpass@127.0.0.1:59999/nodb",
+                uri="postgresql://baduser:badpass@sr-postgres:5432/nodb",
             )
             create_succeeded = True
         except pymysql.err.DatabaseError:
-            # Error at creation time -- connection check was eager.
             return
 
-        # CREATE succeeded -- connection is deferred; query must fail.
         with pytest.raises(pymysql.err.DatabaseError):
             execute_sql(sr_conn, f"SHOW DATABASES FROM {cat}")
 
@@ -213,12 +171,7 @@ def test_postgres_bad_uri(sr_conn, postgres_driver_path):
 
 @pytest.mark.postgres
 def test_postgres_adbc_passthrough(sr_conn, postgres_driver_path, postgres_port):
-    """Verify that an ``adbc.*`` property is forwarded to the driver.
-
-    StarRocks must not reject ``adbc.*`` keys at validation time (PROP-05).
-    The driver itself may reject unknown options — that proves forwarding works
-    (the error originates from the driver, not StarRocks property validation).
-    """
+    """Verify that an ``adbc.*`` property is forwarded to the driver."""
     cat = "test_pg_pt"
     try:
         try:
@@ -231,10 +184,8 @@ def test_postgres_adbc_passthrough(sr_conn, postgres_driver_path, postgres_port)
                     "adbc.postgresql.quirks.infer_timestamp": "true",
                 },
             )
-            # Driver accepted — pass-through confirmed
         except pymysql.err.ProgrammingError as e:
             err_msg = str(e)
-            # Driver-level rejection proves StarRocks forwarded the option
             assert "Unknown database option" in err_msg or "libpq" in err_msg, (
                 f"Expected driver-level rejection, got: {err_msg}"
             )
@@ -246,60 +197,15 @@ def test_postgres_adbc_passthrough(sr_conn, postgres_driver_path, postgres_port)
 # TLS: Certificate-verified connection
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="module")
-def postgres_ssl_ca(postgres_port) -> str:
-    """Enable SSL on the PostgreSQL container and extract the CA cert.
-
-    Returns the host-side path to the CA certificate file.
-    """
-    import pathlib
-    import time
-
-    ca_path = "/tmp/adbc_test_postgres_ca.pem"
-    # Generate self-signed cert and enable SSL (idempotent)
-    subprocess.run(
-        [
-            "docker", "exec", "-u", "postgres", PG_CONTAINER, "bash", "-c",
-            "cd /var/lib/postgresql/data && "
-            "test -f server.key || ("
-            "openssl req -new -x509 -days 365 -nodes -text "
-            "-out server.crt -keyout server.key "
-            "-subj '/CN=localhost' 2>/dev/null && "
-            "chmod 600 server.key && "
-            "grep -q 'ssl = on' postgresql.conf || "
-            "echo 'ssl = on' >> postgresql.conf && "
-            "pg_ctl reload -D /var/lib/postgresql/data"
-            ")",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=15,
-    )
-    time.sleep(2)
-    # Extract the server cert (self-signed = CA cert)
-    subprocess.run(
-        ["docker", "cp",
-         f"{PG_CONTAINER}:/var/lib/postgresql/data/server.crt", ca_path],
-        check=True,
-        capture_output=True,
-    )
-    assert pathlib.Path(ca_path).exists(), f"CA cert not extracted to {ca_path}"
-    return ca_path
-
-
 @pytest.mark.postgres
 @pytest.mark.tls
 def test_postgres_tls_verified(
     sr_conn, postgres_driver_path, postgres_port, postgres_test_data,
     postgres_ssl_ca,
 ):
-    """Connect via TLS with certificate verification using sslrootcert file path.
-
-    Proves that the PostgreSQL ADBC driver (libpq) reads the CA cert from the
-    file path in the URI and validates the server certificate against it.
-    """
+    """Connect via TLS with certificate verification using sslrootcert file path."""
     tls_uri = (
-        f"postgresql://{PG_USER}:{PG_PASS}@127.0.0.1:5432/{PG_DB}"
+        f"postgresql://{PG_USER}:{PG_PASS}@sr-postgres:5432/{PG_DB}"
         f"?sslmode=verify-ca&sslrootcert={postgres_ssl_ca}"
     )
     cat = "test_pg_tls_verified"

@@ -1,3 +1,7 @@
+# DEPRECATED: sqlflite TLS is managed by docker compose service sr-flightsql-tls.
+# TLS certs are pre-generated in docker/certs/. This module is no longer used.
+# Will be removed in a cleanup pass.
+
 """TLS helpers for sqlflite with self-signed certificates."""
 
 from __future__ import annotations
