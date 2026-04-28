@@ -28,30 +28,26 @@ A Docker Compose-based end-to-end verification suite for the StarRocks ADBC cata
 - ✓ **DC-08**: Log capture on failure pulling container logs into test report — Validated in Phase 01
 - ✓ **DC-09**: CLI runner accepting DEB path and orchestrating full test cycle — Validated in Phase 01
 - ✓ **DC-10**: Fast iteration path: `pytest -k` with running containers — Validated in Phase 01
+- ✓ **BENCH-01..BENCH-08**: MySQL JDBC vs ADBC benchmark CLI with argparse, warmup/measurement loop, EXPLAIN ANALYZE parsing, ASCII table output, AVG/GEOMEAN summaries — Validated in Phase 03
 
 ### Active
 
-*(none — all active requirements validated in Phase 01)*
+*(none — all active requirements validated in Phase 01/02/03)*
 
 ### Out of Scope
 
 - CI/CD pipeline integration — local first; CI can be layered later
 - ARM/AArch64 builds — x86_64 only for now
 - OAuth or Kerberos authentication — username/password only
-- Performance benchmarking — functional correctness only
 - External test data creation scripts — TPC-H data generation handled within Docker Compose startup
 
 ## Context
 
-Phase 01 complete — Docker Compose verification suite built. The project now contains:
-- `docker/` with Docker Compose (5 services), Dockerfile, entrypoint, init SQL, pre-baked data, TLS certs
-- `conftest.py` refactored for Docker Compose (env var config, fixed driver paths, compose log capture)
-- `tests/` adapted for Docker DNS service names (sr-postgres, sr-mysql, sr-flightsql)
-- `queries/` with TPC-H SQL files per driver and cross-driver federation queries
-- `run-verify.py` CLI runner for the full ship→verify→retest loop
-- `README.md` with setup, fast iteration, and troubleshooting docs
-
-All 17 requirements (6 legacy + DC-01 through DC-10 + VAL-01 through VAL-07) validated in Phase 01.
+All three phases complete via GSD workflows:
+- **Phase 01**: Docker Compose verification suite — 5 backends, 35 tests, CLI runner (`run-verify.py`)
+- **Phase 02**: TPC-H SF1 data (~900 MB) for PostgreSQL and MySQL, 44 TPC-H query files, data generators
+- **Phase 03**: MySQL JDBC vs ADBC benchmark CLI (`benchmark/mysql-jdbc-vs-adbc.py`) with EXPLAIN ANALYZE timing, ASCII comparison table, and smoke tests
+- **Next**: Phase 04 — FlightSQL TPC-H queries against external StarRocks with Arrow Flight ports
 
 ## Constraints
 
@@ -59,6 +55,7 @@ All 17 requirements (6 legacy + DC-01 through DC-10 + VAL-01 through VAL-07) val
 - **DEB source**: StarRocks `.deb` must exist at `docker/starrocks-fe_*.deb` and `docker/starrocks-be_*.deb`
 - **Architecture**: x86_64 only (DEBs are amd64)
 - **Drivers**: ADBC driver `.so` files must be available on the host for embedding into the StarRocks container image
+- **JAR**: MySQL Connector/J JAR fetched via `docker/fetch-jdbc-jar.sh` (one-time, placed in `docker/drivers/`)
 - **Python**: Python 3.11+, pytest, pymysql (already set up in `.venv`)
 - **Network**: Docker Compose internal network; host only needs access to the StarRocks MySQL port (published)
 
@@ -73,6 +70,9 @@ All 17 requirements (6 legacy + DC-01 through DC-10 + VAL-01 through VAL-07) val
 | Host runs pytest against Docker Compose exposed port | Simple; no need for pytest-in-docker | Implemented — `conftest.py` connects to `STARROCKS_HOST:STARROCKS_PORT` |
 | Driver paths as constants in conftest.py | Deterministic; no TOML resolution at runtime | Implemented — `/opt/starrocks/drivers/` fixed paths |
 | Containers stay running by default after tests | Fast re-test iteration without rebuild | Implemented — `run-verify.py --keep` (default) |
+| JDBC catalog property key is `user` (NOT `username`) | ADBC uses `username`, JDBC uses `user` per StarRocks docs | Implemented — `create_jdbc_catalog` docstring calls out the distinction |
+| EXPLAIN ANALYZE timing over client-side wall-clock | Server-side timing is deterministic and comparable across catalogs | Implemented — `benchmark/explain_parser.py` parses StarRocks plan output |
+| MySQL Connector/J 9.3.0 as JDBC driver | Latest 9.x, uses modern `com.mysql.cj.jdbc.Driver` | Implemented — `docker/fetch-jdbc-jar.sh` downloads from Maven Central |
 
 ## Evolution
 
@@ -92,4 +92,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-27 after Phase 01 completion*
+*Last updated: 2026-04-28 after Phase 03 completion*
