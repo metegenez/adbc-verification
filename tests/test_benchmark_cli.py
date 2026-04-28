@@ -32,7 +32,7 @@ from benchmark.explain_parser import parse_summary_total, parse_scan_nodes
 _MYSQL_USER = "root"
 _MYSQL_PASS = "testpass"
 _MYSQL_DB = "testdb"
-_JDBC_DRIVER_PATH = "/opt/starrocks/drivers/mysql-connector-j-9.3.0.jar"
+_JDBC_DRIVER_PATH = "file:///opt/starrocks/drivers/mysql-connector-j-9.3.0.jar"
 _JDBC_URI = f"jdbc:mysql://sr-mysql:3306/{_MYSQL_DB}"
 _ADBC_DRIVER_PATH = "/opt/starrocks/drivers/libadbc_driver_mysql.so"
 _ADBC_URI = f"mysql://{_MYSQL_USER}:{_MYSQL_PASS}@sr-mysql:3306/{_MYSQL_DB}"
