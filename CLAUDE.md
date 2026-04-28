@@ -54,9 +54,9 @@ docker/
   drivers/              # ADBC driver .so files
   generate-data.py      # Regenerate .db and CSV files
 queries/                # Externalized SQL files (auto-discovered by test_queries.py)
-  postgres/             # 22 TPC-H queries + 2 legacy (select, join)
-  mysql/                # 22 TPC-H queries + 2 legacy
-  sqlite/, duckdb/, flightsql/
+  postgres/             # 2 TPC-H queries (select, join) — 22 planned in Phase 2
+  mysql/                # 2 TPC-H queries (select, join) — 22 planned in Phase 2
+  sqlite/, duckdb/, flightsql/  # 2 queries each
   cross-join/           # Cross-driver federation queries
 tests/
   test_queries.py       # Executes every .sql under queries/ against live catalogs

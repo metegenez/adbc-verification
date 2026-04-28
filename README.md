@@ -100,11 +100,11 @@ docker/
   drivers/              # ADBC driver .so files (copied from host at build time)
   generate-data.py      # Generate SQLite/DuckDB .db files
 queries/                # Externalized SQL query files (versioned independently)
-  sqlite/               # TPC-H queries against SQLite catalog
-  postgres/             # 22 TPC-H queries against PostgreSQL catalog
-  mysql/                # 22 TPC-H queries against MySQL catalog
-  flightsql/            # TPC-H queries against FlightSQL catalog
-  duckdb/               # TPC-H queries against DuckDB catalog
+  sqlite/               # 2 TPC-H queries (select, join)
+  postgres/             # 2 TPC-H queries (select, join) — 22 planned (Phase 2)
+  mysql/                # 2 TPC-H queries (select, join) — 22 planned (Phase 2)
+  flightsql/            # 2 TPC-H queries (select, join)
+  duckdb/               # 2 TPC-H queries (select, join)
   cross-join/           # Cross-driver federation queries
 tests/                  # pytest test suite (35 tests + query discovery)
   test_queries.py       # Auto-discovers and runs all .sql files under queries/
@@ -138,7 +138,7 @@ All services communicate via Docker DNS on the `sr-net` bridge network.
 
 - **35 tests** across 7 modules (catalog lifecycle, data, error paths)
 - **5 ADBC drivers**: SQLite, DuckDB, MySQL, PostgreSQL, FlightSQL
-- **TPC-H queries**: SELECT + JOIN across all drivers, plus 44 SF1 query files
+- **TPC-H queries**: SELECT + JOIN across all drivers (10 query files, expanding to 44 in Phase 2)
 - **Cross-driver federation**: SQLite↔PostgreSQL, SQLite↔SQLite JOINs
 - **TLS**: FlightSQL and PostgreSQL with self-signed certificates
 - **Error paths**: Bad URIs, wrong passwords, missing entrypoints, unknown keys
