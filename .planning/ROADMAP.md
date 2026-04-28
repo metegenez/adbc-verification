@@ -53,3 +53,34 @@ Phase 1 executes plans sequentially: 01-01 → 01-02 → 01-03
 
 Plans:
 - [ ] 02-01: TPC-H SF1 Data Loading and 22-Query Corpus — Python SF1 CSV generator (`docker/generate-sf1-data.py`), rewritten PostgreSQL/MySQL init scripts with COPY/LOAD DATA, 44 TPC-H query SQL files across both backends, docker-compose.yml volume mounts for SF1 data, integration verification run **(TPC-SF1-01, TPC-SF1-02, TPC-SF1-03, TPC-SF1-04)**
+
+### Phase 3: Compare MySQL JDBC vs ADBC reproducible benchmark — CLI prints ASCII table of query times, row counts, and Nx ratios; parametrizable TPC-H scale factor; parses StarRocks EXPLAIN ANALYZE output across separate JDBC/ADBC catalogs and matched query sets
+
+**Goal:** A reproducible single-command CLI at `benchmark/mysql-jdbc-vs-adbc.py` that creates separate JDBC (`bench_jdbc`, MySQL Connector/J 9.3.0) and ADBC (`bench_adbc`) catalogs against the same `sr-mysql:3306/testdb` backend, runs all 22 TPC-H queries against both via `EXPLAIN ANALYZE`, parses Summary.TotalTime and per-scan-node times (matched by operator id), and prints a wide ASCII table with columns Query / JDBC total (ms) / ADBC total (ms) / Total ratio / JDBC scan (ms) / ADBC scan (ms) / Scan ratio plus AVG and GEOMEAN summary rows. Catalogs are auto-created on startup and auto-dropped on exit (including Ctrl+C); per-query timeout is enforced server-side via `SET_VAR(query_timeout=N)`. Parametrizable by `--scale` (sf1 only in v1), `--queries` (subset selection), `--runs` (default 3 + 1 warmup pass per catalog), `--timeout` (default 60s).
+
+**Requirements**: BENCH-01, BENCH-02, BENCH-03, BENCH-04, BENCH-05, BENCH-06, BENCH-07, BENCH-08 *(local Phase-3-only IDs; not added to REQUIREMENTS.md per RESEARCH.md A2)*
+**Depends on:** Phase 2
+
+**Success Criteria** (what must be TRUE):
+  1. User runs `bash docker/fetch-jdbc-jar.sh` once and `docker/drivers/mysql-connector-j-9.3.0.jar` exists (gitignored, mirrors the `.so` driver convention); after `docker compose up --build`, the JAR is at `/opt/starrocks/drivers/mysql-connector-j-9.3.0.jar` inside the sr-main container.
+  2. User runs `.venv/bin/python benchmark/mysql-jdbc-vs-adbc.py` with no flags and the CLI runs all 22 TPC-H queries against `bench_jdbc` and `bench_adbc` (one warmup pass per catalog + 3 measurement runs per query per catalog), prints the comparison table, and exits 0.
+  3. The output table has rows for Q01–Q22 sorted by query number, columns matching D-05, ratio = JDBC/ADBC (D-06), `N/A` cells where any run timed out (D-19, D-25), and AVG + GEOMEAN summary rows at the bottom (D-10).
+  4. Row count mismatches between JDBC and ADBC are logged to stderr only (D-11, D-27) — never shown in the table.
+  5. After the CLI exits (success, failure, or Ctrl+C), `SHOW CATALOGS` does not list `bench_jdbc` or `bench_adbc` (auto-drop, including in `KeyboardInterrupt` arm).
+  6. `pytest -m benchmark` runs the smoke test in `tests/test_benchmark_cli.py` and exits 0; the existing 35+ test suite continues to pass without regression.
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03-01: Foundations — JDBC catalog helper (`lib/catalog_helpers.create_jdbc_catalog`), EXPLAIN ANALYZE parser module (`benchmark/explain_parser.py` with `parse_summary_total`, `parse_scan_nodes`, `with_timeout_hint`), JAR fetch script (`docker/fetch-jdbc-jar.sh`), CLAUDE.md prerequisites bullet **(BENCH-02, BENCH-03, BENCH-04, BENCH-05)**
+- [ ] 03-02: Benchmark CLI — `benchmark/mysql-jdbc-vs-adbc.py` orchestrator (argparse, warmup + measurement loop, ASCII table renderer, AVG/GEOMEAN summary, error handling, FE health probe), smoke test (`tests/test_benchmark_cli.py`), `benchmark` pytest marker, end-to-end verification through live stack **(BENCH-01, BENCH-06, BENCH-07, BENCH-08)**
+
+### Phase 4: FlightSQL TPC-H queries against external StarRocks with Arrow Flight ports
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 3
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 4 to break down)
