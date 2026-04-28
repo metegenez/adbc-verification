@@ -26,4 +26,5 @@ markers = [
     "cross_join: Cross-driver join tests",
     "negative: Negative/error validation tests",
     "tls: TLS-enabled tests",
+    "benchmark: JDBC vs ADBC benchmark CLI tests",
 ]
