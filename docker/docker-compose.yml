@@ -33,13 +33,15 @@ services:
       POSTGRES_DB: testdb
     volumes:
       - ./init/postgres/:/docker-entrypoint-initdb.d/:ro
+      - ./data/sf1/:/sf1-data/:ro
     networks:
       - sr-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
-      interval: 3s
-      timeout: 3s
-      retries: 20
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 300s
 
   sr-mysql:
     image: mysql:8.0
@@ -49,6 +51,7 @@ services:
       MYSQL_DATABASE: testdb
     volumes:
       - ./init/mysql/:/docker-entrypoint-initdb.d/:ro
+      - ./data/sf1/:/var/lib/mysql-files/:ro
     networks:
       - sr-net
     healthcheck:
@@ -56,7 +59,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-      start_period: 15s
+      start_period: 300s
 
   sr-flightsql:
     image: voltrondata/sqlflite:latest
