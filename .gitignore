@@ -10,3 +10,6 @@ docker/drivers/
 
 # Generated SQLite/DuckDB databases
 docker/data/*.db
+
+# Generated SF1 CSV data files (too large for git — regenerate with docker/generate-sf1-data.py)
+docker/data/sf1/*.csv
