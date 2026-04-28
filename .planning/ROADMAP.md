@@ -72,7 +72,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01: Foundations — JDBC catalog helper (`lib/catalog_helpers.create_jdbc_catalog`), EXPLAIN ANALYZE parser module (`benchmark/explain_parser.py` with `parse_summary_total`, `parse_scan_nodes`, `with_timeout_hint`), JAR fetch script (`docker/fetch-jdbc-jar.sh`), CLAUDE.md prerequisites bullet **(BENCH-02, BENCH-03, BENCH-04, BENCH-05)**
+- [x] 03-01: Foundations — JDBC catalog helper (`lib/catalog_helpers.create_jdbc_catalog`), EXPLAIN ANALYZE parser module (`benchmark/explain_parser.py` with `parse_summary_total`, `parse_scan_nodes`, `with_timeout_hint`), JAR fetch script (`docker/fetch-jdbc-jar.sh`), CLAUDE.md prerequisites bullet **(BENCH-02, BENCH-03, BENCH-04, BENCH-05)**
 - [ ] 03-02: Benchmark CLI — `benchmark/mysql-jdbc-vs-adbc.py` orchestrator (argparse, warmup + measurement loop, ASCII table renderer, AVG/GEOMEAN summary, error handling, FE health probe), smoke test (`tests/test_benchmark_cli.py`), `benchmark` pytest marker, end-to-end verification through live stack **(BENCH-01, BENCH-06, BENCH-07, BENCH-08)**
 
 ### Phase 4: FlightSQL TPC-H queries against external StarRocks with Arrow Flight ports
