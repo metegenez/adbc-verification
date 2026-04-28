@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 03 context gathered
-last_updated: "2026-04-28T14:02:24.959Z"
+stopped_at: Phase 4 context gathered
+last_updated: "2026-04-28T15:00:25.430Z"
 last_activity: 2026-04-28 -- Phase 02 execution started
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
@@ -79,11 +79,12 @@ None yet.
 
 - Phase 02 added: PostgreSQL and MySQL TPC-H SF1 data loading and queries
 - Phase 03 added: MySQL JDBC vs ADBC reproducible benchmark CLI (ASCII table output, parametrizable TPC-H scale, EXPLAIN ANALYZE parsing across separate JDBC/ADBC catalogs)
+- Phase 04 added: FlightSQL TPC-H queries against external StarRocks with Arrow Flight ports
 
 ## Session Continuity
 
 Last session: --stopped-at
-Stopped at: Phase 03 context gathered
+Stopped at: Phase 4 context gathered
 Resume file: --resume-file
 
 **Planned Phase:** 1 (Docker Compose Verification Suite) — 3 plans — 2026-04-27T13:52:54.505Z
