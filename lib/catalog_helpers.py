@@ -40,6 +40,44 @@ def create_adbc_catalog(
         cur.execute(sql)
 
 
+
+def create_jdbc_catalog(
+    conn,
+    catalog_name: str,
+    jdbc_uri: str,
+    user: str,
+    password: str,
+    driver_url: str,
+    driver_class: str = "com.mysql.cj.jdbc.Driver",
+) -> None:
+    """Issue ``CREATE EXTERNAL CATALOG`` for a JDBC source via pymysql.
+
+    Property key is ``user`` (NOT ``username`` — that key is ADBC-specific,
+    see ``create_adbc_catalog`` and CLAUDE.md). Properties emitted:
+    type=jdbc, user, password, jdbc_uri, driver_url, driver_class.
+
+    *driver_url* must be the absolute path to the JAR inside the StarRocks
+    container (e.g. ``/opt/starrocks/drivers/mysql-connector-j-9.3.0.jar``).
+    Glob patterns are NOT expanded by StarRocks — pin the exact filename.
+    """
+    props: dict[str, str] = {
+        "type": "jdbc",
+        "user": user,
+        "password": password,
+        "jdbc_uri": jdbc_uri,
+        "driver_url": driver_url,
+        "driver_class": driver_class,
+    }
+
+    def _escape(v: str) -> str:
+        return v.replace('"', '\\"')
+
+    props_sql = ", ".join(f'"{k}"="{_escape(v)}"' for k, v in props.items())
+    sql = f"CREATE EXTERNAL CATALOG {catalog_name} PROPERTIES({props_sql})"
+    with conn.cursor() as cur:
+        cur.execute(sql)
+
+
 def drop_catalog(conn, catalog_name: str) -> None:
     """Issue ``DROP CATALOG IF EXISTS``."""
     with conn.cursor() as cur:
