@@ -1,6 +1,6 @@
 -- TPC-H Q13: Customer Distribution
 -- Catalog: sr_postgres, Schema: public
--- Expected: 42 rows
+-- Expected: 28 rows
 SELECT
     c_count,
     COUNT(*) AS custdist

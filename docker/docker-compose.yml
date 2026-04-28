@@ -46,6 +46,7 @@ services:
   sr-mysql:
     image: mysql:8.0
     container_name: sr-mysql
+    command: ["--max-connections=500"]
     environment:
       MYSQL_ROOT_PASSWORD: testpass
       MYSQL_DATABASE: testdb
@@ -55,10 +56,10 @@ services:
     networks:
       - sr-net
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-uroot", "-ptestpass", "--silent"]
+      test: ["CMD", "mysql", "-h", "127.0.0.1", "--protocol=TCP", "-uroot", "-ptestpass", "-e", "SELECT 1"]
       interval: 5s
       timeout: 3s
-      retries: 20
+      retries: 60
       start_period: 300s
 
   sr-flightsql:

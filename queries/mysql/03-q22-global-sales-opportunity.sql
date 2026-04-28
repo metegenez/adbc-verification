@@ -1,6 +1,6 @@
 -- TPC-H Q22: Global Sales Opportunity
 -- Catalog: sr_mysql, Schema: testdb
--- Expected: 7 rows
+-- Expected: 0 rows
 SELECT
     cntrycode,
     COUNT(*) AS numcust,

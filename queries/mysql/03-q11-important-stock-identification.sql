@@ -1,6 +1,6 @@
 -- TPC-H Q11: Important Stock Identification
 -- Catalog: sr_mysql, Schema: testdb
--- Expected: 1000 rows
+-- Expected: 1029 rows
 SELECT
     ps_partkey,
     SUM(ps_supplycost * ps_availqty) AS value

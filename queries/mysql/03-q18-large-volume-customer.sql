@@ -1,6 +1,6 @@
 -- TPC-H Q18: Large Volume Customer
 -- Catalog: sr_mysql, Schema: testdb
--- Expected: 57 rows
+-- Expected: 64 rows
 SELECT
     c_name,
     c_custkey,

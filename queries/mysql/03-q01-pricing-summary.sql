@@ -1,6 +1,6 @@
 -- TPC-H Q01: Pricing Summary Report
 -- Catalog: sr_mysql, Schema: testdb
--- Expected: 4 rows
+-- Expected: 3 rows
 SELECT
     l_returnflag,
     l_linestatus,

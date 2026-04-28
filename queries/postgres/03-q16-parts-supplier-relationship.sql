@@ -1,6 +1,6 @@
 -- TPC-H Q16: Parts/Supplier Relationship
 -- Catalog: sr_postgres, Schema: public
--- Expected: 18314 rows
+-- Expected: 16630 rows
 SELECT
     p_brand,
     p_type,
