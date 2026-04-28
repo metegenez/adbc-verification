@@ -14,6 +14,9 @@ echo "Container IP: $CONTAINER_IP (network: $CONTAINER_SUBNET)"
 echo "priority_networks = $CONTAINER_SUBNET" >> /etc/starrocks/fe/fe.conf
 echo "priority_networks = $CONTAINER_SUBNET" >> /etc/starrocks/be/be.conf
 
+# Set JAVA_HOME for BE (start_be.sh --daemon drops Dockerfile ENV; JDBC connector needs it)
+echo "JAVA_HOME = /usr/lib/jvm/java-17-openjdk-amd64" >> /etc/starrocks/be/be.conf
+
 echo "=== Starting StarRocks FE ==="
 /usr/lib/starrocks/fe/bin/start_fe.sh --daemon
 
