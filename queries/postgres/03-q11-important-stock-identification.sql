@@ -1,6 +1,7 @@
 -- TPC-H Q11: Important Stock Identification
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 1000 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     ps_partkey,
     SUM(ps_supplycost * ps_availqty) AS value

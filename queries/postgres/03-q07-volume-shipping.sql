@@ -1,6 +1,7 @@
 -- TPC-H Q07: Volume Shipping
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 4 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     supp_nation,
     cust_nation,

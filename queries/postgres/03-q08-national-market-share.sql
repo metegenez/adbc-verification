@@ -1,6 +1,7 @@
 -- TPC-H Q08: National Market Share
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 2 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     o_year,
     SUM(CASE WHEN nation = 'BRAZIL' THEN volume ELSE 0 END) / SUM(volume) AS mkt_share

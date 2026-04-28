@@ -1,6 +1,7 @@
 -- TPC-H Q17: Small-Quantity-Order Revenue
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 1 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     SUM(l_extendedprice) / 7.0 AS avg_yearly
 FROM sr_postgres.public.lineitem

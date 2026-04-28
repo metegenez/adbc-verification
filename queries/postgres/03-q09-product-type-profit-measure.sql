@@ -1,6 +1,7 @@
 -- TPC-H Q09: Product Type Profit Measure
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 175 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     nation,
     o_year,

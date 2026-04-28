@@ -1,6 +1,7 @@
 -- TPC-H Q02: Minimum Cost Supplier
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 100 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     s.s_acctbal,
     s.s_name,

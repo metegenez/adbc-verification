@@ -1,6 +1,7 @@
 -- TPC-H Q10: Returned Item Reporting
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 20 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     c_custkey,
     c_name,

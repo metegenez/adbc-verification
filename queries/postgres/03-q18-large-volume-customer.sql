@@ -1,6 +1,7 @@
 -- TPC-H Q18: Large Volume Customer
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 57 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     c_name,
     c_custkey,

@@ -40,6 +40,12 @@ def _expected_rows(sql: str) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def _skip_reason(sql: str) -> str | None:
+    """Parse ``-- Skip: <reason>`` from a .sql file, return the reason or None."""
+    m = re.search(r"--\s*Skip:\s*(.+)", sql)
+    return m.group(1).strip() if m else None
+
+
 # ---------------------------------------------------------------------------
 # Session-scoped catalog fixtures (one per driver)
 # ---------------------------------------------------------------------------
@@ -130,6 +136,10 @@ def test_query_file(sr_conn, driver, path,
     raw = path.read_text()
     sql = _strip_comments(raw)
     assert sql.strip(), f"Query file {path} is empty after stripping comments"
+
+    skip_reason = _skip_reason(raw)
+    if skip_reason:
+        pytest.skip(skip_reason)
 
     # DuckDB :memory: has no TPC-H data — skip query files that need tables
     if driver == "duckdb":

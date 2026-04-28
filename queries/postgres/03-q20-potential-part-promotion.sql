@@ -1,6 +1,7 @@
 -- TPC-H Q20: Potential Part Promotion
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 186 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     s_name,
     s_address

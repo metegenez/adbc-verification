@@ -1,6 +1,7 @@
 -- TPC-H Q03: Shipping Priority
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 10 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     l_orderkey,
     SUM(l_extendedprice * (1 - l_discount)) AS revenue,

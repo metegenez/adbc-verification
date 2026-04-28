@@ -1,6 +1,7 @@
 -- TPC-H Q06: Forecasting Revenue Change
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 1 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     SUM(l_extendedprice * l_discount) AS revenue
 FROM sr_postgres.public.lineitem

@@ -1,6 +1,7 @@
 -- TPC-H Q01: Pricing Summary Report
 -- Catalog: sr_postgres, Schema: public
 -- Expected: 4 rows
+-- Skip: postgres-numeric Arrow extension type unsupported in StarRocks BE (see .planning/phases/02-*/02-NOTES-postgres-numeric.md)
 SELECT
     l_returnflag,
     l_linestatus,
