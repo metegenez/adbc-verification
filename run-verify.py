@@ -103,11 +103,15 @@ def run_verification(args: argparse.Namespace) -> bool:
         return False
     print(f"✓ DEB packages found: {fe_path}, {be_path}")
 
-    # Step 2: Copy .debs to docker/
+    # Step 2: Copy .debs to docker/ (skip if source already there)
     os.makedirs(COMPOSE_DIR, exist_ok=True)
-    shutil.copy2(fe_path, COMPOSE_DIR / "starrocks-fe_latest_amd64.deb")
-    shutil.copy2(be_path, COMPOSE_DIR / "starrocks-be_latest_amd64.deb")
-    print("✓ DEBs copied to docker/")
+    fe_dst = COMPOSE_DIR / "starrocks-fe_latest_amd64.deb"
+    be_dst = COMPOSE_DIR / "starrocks-be_latest_amd64.deb"
+    if fe_path.resolve() != fe_dst.resolve():
+        shutil.copy2(fe_path, fe_dst)
+    if be_path.resolve() != be_dst.resolve():
+        shutil.copy2(be_path, be_dst)
+    print("✓ DEBs in docker/")
 
     # Step 3: Build and start containers
     print("◆ Building and starting containers...")
@@ -208,16 +212,19 @@ def _wait_for_healthy() -> bool:
                 continue
             name = svc.get("Service", svc.get("Name", ""))
             health = svc.get("Health", "")
+            state = svc.get("State", "")
             if name in services:
-                if health == "healthy":
+                ready = health == "healthy" or (health == "" and state == "running")
+                if ready:
                     if not services[name]:
                         services[name] = True
                         elapsed = int(HEALTHCHECK_TIMEOUT - (deadline - time.monotonic()))
-                        print(f"  ✓ {name} healthy ({elapsed}s)")
-                elif health != "healthy":
+                        suffix = "healthy" if health == "healthy" else "running (no healthcheck)"
+                        print(f"  ✓ {name} {suffix} ({elapsed}s)")
+                else:
                     all_healthy = False
                     if name not in reported:
-                        status = svc.get("State", health)
+                        status = state or health or "unknown"
                         print(f"  ... {name}: {status}")
 
         if all_healthy and all(services.values()):

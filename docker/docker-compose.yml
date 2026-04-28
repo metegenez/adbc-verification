@@ -51,7 +51,7 @@ services:
       MYSQL_DATABASE: testdb
     volumes:
       - ./init/mysql/:/docker-entrypoint-initdb.d/:ro
-      - ./data/sf1/:/var/lib/mysql-files/:ro
+      - ./data/sf1/:/var/lib/mysql-files/
     networks:
       - sr-net
     healthcheck:

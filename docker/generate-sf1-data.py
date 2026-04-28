@@ -165,7 +165,7 @@ def open_csv(name: str) -> tuple:
     """Return (file_handle, csv.writer) for the given table name."""
     path = os.path.join(OUT_DIR, f"{name}.csv")
     fh = open(path, "w", newline="", encoding="utf-8")
-    writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL)
+    writer = csv.writer(fh, quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
     return fh, writer, path
 
 # ---------------------------------------------------------------------------
