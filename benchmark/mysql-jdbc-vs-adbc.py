@@ -32,6 +32,11 @@ import sys
 
 import pymysql
 
+# Ensure project root is on sys.path so `lib` and `benchmark` are importable
+# when running as a script from any cwd (mirrors pytest collection behavior).
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
+
 from lib.catalog_helpers import (
     create_adbc_catalog,
     create_jdbc_catalog,
@@ -46,8 +51,8 @@ from benchmark.explain_parser import (
 
 # ---- Module-level constants ----
 
-PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
-QUERIES_DIR = PROJECT_ROOT / "queries" / "mysql"
+PROJECT_ROOT = _PROJECT_ROOT
+QUERIES_DIR = _PROJECT_ROOT / "queries" / "mysql"
 
 STARROCKS_HOST = os.environ.get("STARROCKS_HOST", "127.0.0.1")
 STARROCKS_PORT = int(os.environ.get("STARROCKS_PORT", "9030"))
