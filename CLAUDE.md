@@ -33,6 +33,7 @@ docker compose -f docker/docker-compose.yml down -v
 - StarRocks `.deb` packages in `docker/` (build via `ship-starrocks` skill)
 - ADBC drivers installed: `~/.local/bin/dbc install sqlite flightsql postgresql duckdb mysql`
 - Driver `.so` files in `docker/drivers/` (copy from `~/.config/adbc/drivers/`)
+- MySQL Connector/J JAR for the JDBC benchmark catalog: `bash docker/fetch-jdbc-jar.sh` (one-time, fetches `mysql-connector-j-9.3.0.jar` from Maven Central into `docker/drivers/`; gitignored)
 - Python venv: `.venv/bin/pip install -e .`
 - Pre-baked data: `python docker/generate-data.py`
 
