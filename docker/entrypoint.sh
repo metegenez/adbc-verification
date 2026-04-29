@@ -16,8 +16,14 @@ echo "priority_networks = $CONTAINER_SUBNET" >> /etc/starrocks/be/be.conf
 
 # Set JAVA_HOME for BE (start_be.sh --daemon drops Dockerfile ENV; JDBC connector needs it)
 echo "JAVA_HOME = /usr/lib/jvm/java-17-openjdk-amd64" >> /etc/starrocks/be/be.conf
-echo "/usr/lib/jvm/java-17-openjdk-amd64/lib/server" > /etc/ld.so.conf.d/java.conf
-ldconfig
+
+# Replace BE's stub libjvm.so with real JDK symlink (idempotent guard).
+# The deb ships an 8.5KB placeholder; the real libjvm.so must be used for JNI.
+BE_LIBJVM="/usr/lib/starrocks/be/lib/libjvm.so"
+if [ -f "$BE_LIBJVM" ] && [ ! -L "$BE_LIBJVM" ]; then
+    rm -f "$BE_LIBJVM"
+    ln -s /usr/lib/jvm/java-17-openjdk-amd64/lib/server/libjvm.so "$BE_LIBJVM"
+fi
 
 echo "=== Starting StarRocks FE ==="
 /usr/lib/starrocks/fe/bin/start_fe.sh --daemon
