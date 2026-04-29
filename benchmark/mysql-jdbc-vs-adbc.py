@@ -28,7 +28,9 @@ import os
 import pathlib
 import re
 import statistics
+import subprocess
 import sys
+import time
 
 import pymysql
 
@@ -52,7 +54,7 @@ from benchmark.explain_parser import (
 # ---- Module-level constants ----
 
 PROJECT_ROOT = _PROJECT_ROOT
-QUERIES_DIR = _PROJECT_ROOT / "queries" / "mysql"
+QUERIES_DIR = _PROJECT_ROOT / "queries" / "tpch"
 
 STARROCKS_HOST = os.environ.get("STARROCKS_HOST", "127.0.0.1")
 STARROCKS_PORT = int(os.environ.get("STARROCKS_PORT", "9030"))
@@ -72,7 +74,7 @@ JDBC_DRIVER_CLASS = "com.mysql.cj.jdbc.Driver"
 JDBC_CATALOG = "bench_jdbc"
 ADBC_CATALOG = "bench_adbc"
 
-_QUERY_FILENAME_RE = re.compile(r"^03-q(\d{2})-")
+_QUERY_FILENAME_RE = re.compile(r"^q(\d{2})\.sql$")
 _SKIP_RE = re.compile(r"--\s*Skip:\s*(.+)")
 
 # Table column definitions: (label, width)
@@ -144,7 +146,7 @@ def discover_queries(queries_arg: str) -> list[tuple[int, pathlib.Path]]:
             sys.exit(2)
 
     out: list[tuple[int, pathlib.Path]] = []
-    for path in sorted(QUERIES_DIR.glob("03-q*.sql")):
+    for path in sorted(QUERIES_DIR.glob("q*.sql")):
         m = _QUERY_FILENAME_RE.match(path.name)
         if not m:
             continue
@@ -174,10 +176,10 @@ def _strip_sql_comments(sql: str) -> str:
 
 
 def rewrite_for_catalog(sql: str, catalog: str) -> str:
-    """Replace ``sr_mysql.`` with ``<catalog>.`` so the same SQL runs against
-    bench_jdbc and bench_adbc.
+    """Substitute canonical ``{catalog}.{db}.`` placeholders so the same SQL
+    runs against bench_jdbc and bench_adbc.
     """
-    return sql.replace("sr_mysql.", f"{catalog}.")
+    return sql.replace("{catalog}", catalog).replace("{db}", "testdb")
 
 
 def run_explain_analyze(conn, sql: str, timeout_seconds: int) -> str:
@@ -515,23 +517,94 @@ def run_benchmark(args: argparse.Namespace) -> bool:
 
 def main() -> None:
     args = parse_args()
-    try:
-        sys.exit(0 if run_benchmark(args) else 1)
-    except KeyboardInterrupt:
-        print(
-            "\nInterrupted — catalogs dropped via finally clause", file=sys.stderr
-        )
-        sys.exit(130)
-    except pymysql.err.OperationalError as e:
-        print(f"\n✗ StarRocks connection error: {e}", file=sys.stderr)
-        print(
-            "If FE crashed, run: docker compose -f docker/docker-compose.yml restart sr-main",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    except Exception as e:
-        print(f"\n✗ Unexpected error: {e}", file=sys.stderr)
-        sys.exit(1)
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            result = run_benchmark(args)
+            if result:
+                sys.exit(0)
+            # result is False — FE crash detected during benchmark
+            if attempt < max_retries:
+                _recover_fe()
+                print(
+                    f"\n◆ Retry {attempt + 1}/{max_retries} after FE recovery...\n",
+                    file=sys.stderr,
+                )
+                time.sleep(5)  # let catalogs stabilize
+            else:
+                print(
+                    "\n✗ Exhausted retries — FE keeps crashing.",
+                    file=sys.stderr,
+                )
+                print(
+                    "The ADBC MySQL driver (v0.3.1) has a known heap-corruption bug.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        except KeyboardInterrupt:
+            print(
+                "\nInterrupted — catalogs dropped via finally clause",
+                file=sys.stderr,
+            )
+            sys.exit(130)
+        except pymysql.err.OperationalError as e:
+            print(f"\n✗ StarRocks connection error: {e}", file=sys.stderr)
+            if attempt < max_retries:
+                _recover_fe()
+                continue
+            print(
+                "If FE crashed, run: docker compose -f docker/docker-compose.yml restart sr-main",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        except Exception as e:
+            # Catches cleanup exceptions (e.g., (0, '') when catalogs can't be
+            # dropped because FE is dead), and truly unexpected errors.
+            msg = str(e).strip()
+            if attempt < max_retries and (
+                "Lost connection" in msg
+                or msg == "(0, '')"
+                or "Can't connect" in msg
+                or "Connection reset" in msg
+            ):
+                print(
+                    f"\n◆ FE connection lost during cleanup: {e}",
+                    file=sys.stderr,
+                )
+                _recover_fe()
+                continue
+            print(f"\n✗ Unexpected error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+
+def _recover_fe() -> None:
+    """Restart sr-main container and wait for it to be healthy."""
+    compose_file = PROJECT_ROOT / "docker" / "docker-compose.yml"
+    print("\n◆ Restarting StarRocks FE (sr-main)...", file=sys.stderr)
+    subprocess.run(
+        ["docker", "compose", "-f", str(compose_file), "restart", "sr-main"],
+        check=False,
+        capture_output=True,
+    )
+    print("◆ Waiting for FE to become ready...", file=sys.stderr)
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        try:
+            conn = pymysql.connect(
+                host=STARROCKS_HOST,
+                port=STARROCKS_PORT,
+                user="root",
+                password="",
+                autocommit=True,
+            )
+            conn.ping()
+            conn.close()
+            print("◆ FE ready.", file=sys.stderr)
+            return
+        except Exception:
+            time.sleep(5)
+    print("✗ FE did not become ready within 120s", file=sys.stderr)
+    sys.exit(2)
 
 
 if __name__ == "__main__":

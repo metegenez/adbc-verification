@@ -83,11 +83,11 @@ def test_explain_analyze_parser_extracts_total_for_q01(sr_conn):
             driver_url=_ADBC_DRIVER_PATH,
             uri=_ADBC_URI,
         )
-        q01_path = _PROJECT_ROOT / "queries" / "mysql" / "03-q01-pricing-summary.sql"
+        q01_path = _PROJECT_ROOT / "queries" / "tpch" / "q01.sql"
         raw = q01_path.read_text()
         sql_lines = [ln for ln in raw.splitlines() if not ln.strip().startswith("--")]
         sql = "\n".join(sql_lines).strip().rstrip(";")
-        sql = sql.replace("sr_mysql.", f"{cat}.")
+        sql = sql.replace("{catalog}", cat).replace("{db}", "testdb")
 
         with sr_conn.cursor() as cur:
             cur.execute("EXPLAIN ANALYZE " + sql)
