@@ -55,6 +55,29 @@ These are the inherited test modules from the existing suite. They must pass aga
 - [x] **VAL-07
 **: Negative/validation error path coverage for all PROP/VAL rules (7 tests)
 
+### FlightSQL → External StarRocks (Phase 4)
+
+These cover the new `sr_flightsql_starrocks` catalog backed by an external StarRocks instance (`sr-external`) populated with TPC-H SF1 native tables, plus the cleanup work that consolidates the TPC-H corpus into a single canonical home and retires dead `lib/` files. The existing sqlflite FlightSQL path (VAL-05) coexists.
+
+- [x] **FS-SR-01
+**: `sr-external` Compose service exists, builds from the same Dockerfile as sr-main, publishes no host ports, mounts `./data/sf1/` read-only and `./init/sr-external/` for init SQL, and reports healthy via the same `mysql -uroot -h127.0.0.1 -P9030 -e "SELECT 1"` healthcheck shape (D-01, D-02, D-03)
+- [x] **FS-SR-02
+**: TPC-H schema is created in sr-external under database `tpch`, and all 8 tables (region, nation, supplier, part, partsupp, customer, orders, lineitem) are loaded from the canonical SF1 CSVs via `INSERT INTO tpch.<table> SELECT * FROM FILES('file:///opt/starrocks/data/sf1/<table>.csv', 'format'='csv', ...)` (D-05, D-07, D-08)
+- [x] **FS-SR-03
+**: Init is idempotent across both cold (`down -v && up`) and warm (`restart`) boots — every init SQL file uses `CREATE DATABASE IF NOT EXISTS` / `CREATE TABLE IF NOT EXISTS` / `TRUNCATE TABLE` so re-running the init loop converges to the same row counts (D-04, RESEARCH Pitfall 8)
+- [ ] **FS-SR-04
+**: `tests/test_flightsql_starrocks.py` ships 4 scenarios — lifecycle, data, wrong-password, ADBC pass-through — and they all pass against a `sr_flightsql_starrocks` catalog at `grpc://sr-external:9408` with `username=root` / `password=""` (D-11, D-13, D-15, D-16)
+- [ ] **FS-SR-05
+**: All 22 canonical TPC-H query files under `queries/tpch/q01.sql..q22.sql` execute via `tests/test_queries.py` against the `sr_flightsql_starrocks` catalog and return correct row counts (D-09, D-10, RESEARCH Pitfall 6 — adopt mysql counts, NOT postgres counts)
+- [ ] **FS-SR-06
+**: The pre-existing sqlflite path coexists — `tests/test_flightsql.py` (5 tests against `sr-flightsql` / `sr-flightsql-tls`) and `queries/flightsql/` (2 query files) continue to pass with no regression after sr-external lands (D-12, D-14)
+- [x] **FS-SR-07
+**: Dead/superseded `lib/` files are deleted — `lib/docker_backends.py`, `lib/starrocks.py`, `lib/tls.py`, and `lib/driver_registry.py` are removed (post-Phase-1 they're no longer imported by `conftest.py` or any test). `lib/` retains only `__init__.py` and `catalog_helpers.py`.
+- [x] **FS-SR-08
+**: `docker/generate-sf1-data.py` is rewritten to use the canonical DuckDB `tpch` extension (`INSTALL tpch; LOAD tpch; CALL dbgen(sf=1); COPY <table> TO '<path>' (FORMAT CSV, HEADER TRUE, DELIMITER ',')`). Generator file is ≤50 lines, deterministic, produces LF-terminated CSVs with header rows at the canonical SF1 row counts (region=5, nation=25, supplier=10000, part=200000, partsupp=800000, customer=150000, orders=1500000, lineitem=6001215) — no hand-rolled mock data generation. Header rows are required by all consumers (postgres `\COPY ... HEADER true`, mysql `LOAD DATA ... IGNORE 1 ROWS`, sr-external `csv.skip_header='1'`).
+- [x] **FS-SR-09
+**: `queries/tpch/q01.sql..q22.sql` is the single canonical TPC-H query home. The 44 per-backend duplicates `queries/mysql/03-q*.sql` and `queries/postgres/03-q*.sql` are deleted. Canonical files use `{catalog}.{db}` template substitution at test-collection time, with the per-backend skip manifest (`CANONICAL_SKIPS`) living in `tests/test_queries.py` and the per-backend mapping in `CANONICAL_BACKENDS` (per `04-CANONICAL-SPEC.md`).
+
 ## v2 Requirements
 
 Deferred to future release. Not in current roadmap.
@@ -107,10 +130,19 @@ Deferred to future release. Not in current roadmap.
 | VAL-05 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
 | VAL-06 | Phase 1: Docker Compose Verification Suite | 01-02 | Pending |
 | VAL-07 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
+| FS-SR-01 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Pending |
+| FS-SR-02 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Pending |
+| FS-SR-03 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Pending |
+| FS-SR-04 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Pending |
+| FS-SR-05 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Pending |
+| FS-SR-06 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Pending |
+| FS-SR-07 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-04 | Pending |
+| FS-SR-08 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-05 | Pending |
+| FS-SR-09 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-05 | Pending |
 
 **Coverage:**
-- v1 requirements: 17 total
-- Mapped to phases: 17
+- v1 requirements: 26 total (17 Docker Compose + 9 FlightSQL→StarRocks)
+- Mapped to phases: 26
 - Unmapped: 0 ✓
 
 ---

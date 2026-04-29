@@ -185,6 +185,7 @@ def _wait_for_healthy() -> bool:
         "sr-postgres": False,
         "sr-flightsql": False,
         "sr-flightsql-tls": False,
+        "sr-external": False,
         "sr-main": False,
     }
     reported: set[str] = set()

@@ -55,22 +55,23 @@ docker/
   drivers/              # ADBC driver .so files
   generate-data.py      # Regenerate .db and CSV files
 queries/                # Externalized SQL files (auto-discovered by test_queries.py)
-  postgres/             # 2 TPC-H queries (select, join) — 22 planned in Phase 2
-  mysql/                # 2 TPC-H queries (select, join) — 22 planned in Phase 2
+  tpch/                 # 22 canonical TPC-H queries (q01..q22) with {catalog}.{db} placeholders — Phase 4 single source of truth
+  postgres/             # 2 TPC-H queries (select, join) only
+  mysql/                # 2 TPC-H queries (select, join) only
   sqlite/, duckdb/, flightsql/  # 2 queries each
   cross-join/           # Cross-driver federation queries
 tests/
-  test_queries.py       # Executes every .sql under queries/ against live catalogs
-  test_sqlite.py        # 6 tests — catalog lifecycle, data, errors
-  test_duckdb.py        # 4 tests — lifecycle, data, entrypoint, passthrough
-  test_mysql.py         # 5 tests — lifecycle, data, SHOW TABLES, errors, cross-join
-  test_postgres.py      # 6 tests — lifecycle, data, SHOW TABLES, errors, TLS, passthrough
-  test_flightsql.py     # 5 tests — lifecycle, data, TLS, auth, passthrough
-  test_cross_join.py    # 2 tests — cross-driver JOINs
-  test_negative.py      # 7 tests — validation error paths
+  test_queries.py             # Executes canonical queries/tpch/ × per-backend product + per-driver dir queries
+  test_sqlite.py              # 6 tests — catalog lifecycle, data, errors
+  test_duckdb.py              # 4 tests — lifecycle, data, entrypoint, passthrough
+  test_mysql.py               # 5 tests — lifecycle, data, SHOW TABLES, errors, cross-join
+  test_postgres.py            # 6 tests — lifecycle, data, SHOW TABLES, errors, TLS, passthrough
+  test_flightsql.py           # 5 tests — sqlflite path: lifecycle, data, TLS, auth, passthrough
+  test_flightsql_starrocks.py # 4 tests — external StarRocks Arrow Flight: lifecycle, data, wrong-password, passthrough (Phase 4)
+  test_cross_join.py          # 2 tests — cross-driver JOINs
+  test_negative.py            # 7 tests — validation error paths
 lib/
-  catalog_helpers.py    # create_adbc_catalog(), drop_catalog(), execute_sql()
-  driver_registry.py    # Reads driver .so paths from ~/.config/adbc/drivers/*.toml
+  catalog_helpers.py    # create_adbc_catalog(), drop_catalog(), execute_sql() — only file under lib/ post-Phase-4 cleanup
 conftest.py             # Session fixtures (sr_conn, driver paths, Docker Compose)
 run-verify.py           # CLI runner — ship→verify→retest loop
 ```
@@ -108,13 +109,23 @@ SQL files are parametrized by driver directory name (top-level under `queries/`)
 - Tests must not leave catalogs behind — always DROP in teardown/finally.
 - The suite expects 35 pytest tests to pass, plus all query file tests under `queries/`.
 - Query files go in `queries/{driver}/` and are picked up automatically — no test code changes needed.
+- "Cannot invoke "String.split(String)" because "explainString" is null" means backend is not alive in starrocks.
 
 ## Phase 2: SF1 Data
 
-Phase 2 replaces the TPC-H seed data (5 rows/table) in PostgreSQL and MySQL with full SF1 data (~900 MB CSV, 8M+ rows):
-- `docker/generate-sf1-data.py` — generates SF1 CSV files (8 tables) to `docker/data/sf1/`. **Run this before first `docker compose up`** — init scripts mount the directory and fail if it's empty.
+Phase 2 replaces the TPC-H seed data (5 rows/table) in PostgreSQL and MySQL with full SF1 data (~900 MB CSV, 8M+ rows). Phase 4 then swaps the generator implementation and consolidates the per-backend query duplicates into a single canonical home:
+- `docker/generate-sf1-data.py` — generates SF1 CSV files (8 tables) to `docker/data/sf1/` using the canonical DuckDB `tpch` extension (`INSTALL tpch; LOAD tpch; CALL dbgen(sf=1); COPY <table> TO '<path>' (FORMAT CSV, HEADER TRUE, DELIMITER ',')`). **Generation is fast (≤30s for the full SF1) — no more multi-minute hand-rolled mock generator.** **Run this before first `docker compose up`** — init scripts mount `docker/data/sf1/` and fail if it's empty.
 - Init scripts use `\COPY` (PostgreSQL, via psql) and `LOAD DATA INFILE` (MySQL) for bulk loading.
-- 44 TPC-H query files (22 per backend) in `queries/postgres/` and `queries/mysql/`. The mysql versions all pass; 17 of the 22 postgres ones are skipped via `-- Skip:` directive — see `.planning/phases/02-*/02-NOTES-postgres-numeric.md` for the StarRocks-side fix that re-enables them.
+- TPC-H queries live as 22 canonical files under `queries/tpch/q01.sql..q22.sql` with `{catalog}.{db}` template placeholders, substituted at test-collection time. The per-backend skip manifest (e.g. `CANONICAL_SKIPS["postgres"]` for the postgres-numeric Arrow gap) lives at the top of `tests/test_queries.py` — see `.planning/phases/02-*/02-NOTES-postgres-numeric.md` for the StarRocks-side fix that will re-enable the 17 postgres skips. The legacy `queries/postgres/03-q*.sql` and `queries/mysql/03-q*.sql` duplicates were retired in Phase 4.
+
+## Phase 4: External StarRocks Arrow Flight
+
+Phase 4 adds a second StarRocks instance (`sr-external`) to the Compose stack and exercises the StarRocks-native Arrow Flight server end-to-end:
+- `sr-external` reuses the same `docker/Dockerfile` and `.deb` as sr-main; no host ports published. Reachable from sr-main via Docker DNS at `sr-external:9408` (FE Arrow Flight).
+- TPC-H schema and SF1 data are loaded into native StarRocks tables under the `tpch` database via `INSERT INTO tpch.<table> SELECT * FROM FILES('file:///opt/starrocks/data/sf1/<table>.csv', 'format'='csv', ...)`. The SF1 CSVs (now generated by the DuckDB `tpch` extension — see Phase 2 above) feed both backends.
+- A new ADBC catalog `sr_flightsql_starrocks` connects from sr-main to `grpc://sr-external:9408` with `username=root` / `password=""`. All 22 canonical TPC-H queries (`queries/tpch/q01..q22.sql`) target it via the `flightsql-starrocks` backend in `tests/test_queries.py`'s `CANONICAL_BACKENDS` mapping.
+- `tests/test_flightsql_starrocks.py` covers 4 scenarios (lifecycle, data, wrong-password, ADBC pass-through); the existing sqlflite path (`sr-flightsql`, `sr-flightsql-tls`, `tests/test_flightsql.py`) coexists unchanged.
+- Cleanup: dead `lib/` files left over from Phase 1 (`docker_backends.py`, `starrocks.py`, `tls.py`, `driver_registry.py`) are deleted; `lib/` retains only `__init__.py` and `catalog_helpers.py`.
 
 ## Pitfalls (read these before running `./run-verify.py` or `docker compose up`)
 
@@ -188,12 +199,10 @@ Catalogs auto-recreate via test fixtures.
 
 `tests/test_queries.py` honors a `-- Skip: <reason>` line anywhere in a `.sql` file (parsed before query execution; comments-only files would still need the skip after the standard `-- TPC-H Q...` header). Use this for queries that depend on engine work not yet landed. Removing the line re-enables the test.
 
-## Retired
+### StarRocks DUPLICATE KEY column ordering (Phase 4)
 
-| File | Reason |
-|------|--------|
-| `lib/docker_backends.py` | Replaced by `docker-compose.yml` services + healthchecks |
-| `lib/starrocks.py` (subprocess start) | Replaced by Docker Compose |
-| `lib/starrocks.py` (file log tail) | Replaced by `docker compose logs` |
-| `lib/tls.py` | Replaced by pre-generated certs in `docker/certs/` |
-| `STARROCKS_HOME` env var | Replaced by `STARROCKS_HOST`/`STARROCKS_PORT` |
+`CREATE TABLE ... DUPLICATE KEY(col_a, col_d) DISTRIBUTED BY HASH(...)` fails with `Key columns must be the first few columns of the schema` if the named columns aren't a contiguous prefix of the schema declaration order. **Do NOT add `DUPLICATE KEY` to the sr-external TPC-H DDL.** StarRocks auto-picks the first 1-3 columns (e.g., `(l_orderkey, l_partkey, l_suppkey)` for lineitem), which is correct for these query patterns. Full rationale: `.planning/phases/04-*/04-RESEARCH.md` Pitfall 1.
+
+### `run-verify.py` service dict (Phase 4)
+
+`run-verify.py:_wait_for_healthy()` has a hardcoded `services = {...}` dict around line 183 that gates pytest launch on every listed service flipping green. **Adding a new compose service requires adding it to this dict** — otherwise the runner returns success before the new service is healthy and pytest fires too early, surfacing as `Database 'tpch' doesn't exist` on first run / passes on retry. sr-external is included as of Phase 4. Full rationale: `.planning/phases/04-*/04-RESEARCH.md` Pitfall 7.
