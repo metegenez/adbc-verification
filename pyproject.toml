@@ -7,6 +7,7 @@ dependencies = [
     "pytest>=8.0",
     "pymysql>=1.1",
     "pytest-json-report>=1.5",
+    "duckdb>=1.0",
 ]
 
 [tool.pytest.ini_options]
