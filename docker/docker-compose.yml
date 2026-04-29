@@ -9,6 +9,8 @@ services:
     networks:
       - sr-net
     depends_on:
+      sr-external:
+        condition: service_healthy
       sr-postgres:
         condition: service_healthy
       sr-mysql:
@@ -83,6 +85,22 @@ services:
       - "31338:31337"
     networks:
       - sr-net
+
+  sr-external:
+    build: .
+    container_name: sr-external
+    volumes:
+      - ./certs/:/opt/starrocks/certs/:ro
+      - ./init/sr-external/:/docker-entrypoint-initdb.d/:ro
+      - ./data/sf1/:/opt/starrocks/data/sf1/:ro
+    networks:
+      - sr-net
+    healthcheck:
+      test: ["CMD", "mysql", "-uroot", "-h127.0.0.1", "-P9030", "-e", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 180s
 
 networks:
   sr-net:
