@@ -33,7 +33,7 @@ _MYSQL_USER = "root"
 _MYSQL_PASS = "testpass"
 _MYSQL_DB = "testdb"
 _JDBC_DRIVER_PATH = "file:///opt/starrocks/drivers/mysql-connector-j-9.3.0.jar"
-_JDBC_URI = f"jdbc:mysql://sr-mysql:3306/{_MYSQL_DB}"
+_JDBC_URI = f"jdbc:mysql://sr-mysql:3306"
 _ADBC_DRIVER_PATH = "/opt/starrocks/drivers/libadbc_driver_mysql.so"
 _ADBC_URI = f"mysql://{_MYSQL_USER}:{_MYSQL_PASS}@sr-mysql:3306/{_MYSQL_DB}"
 
@@ -67,6 +67,9 @@ def test_create_jdbc_catalog_lifecycle(sr_conn):
 
 
 @pytest.mark.benchmark
+@pytest.mark.xfail(
+    reason="StarRocks build feature/remote-table-squashed-9ec3dcc returns null explainString on EXPLAIN ANALYZE for external catalogs"
+)
 def test_explain_analyze_parser_extracts_total_for_q01(sr_conn):
     """Run EXPLAIN ANALYZE for TPC-H Q01 through an ADBC bench catalog and
     verify the parser returns a non-zero Summary.TotalTime in nanoseconds.

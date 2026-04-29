@@ -66,7 +66,7 @@ ADBC_DRIVER_PATH = "/opt/starrocks/drivers/libadbc_driver_mysql.so"
 ADBC_URI = f"mysql://{MYSQL_USER}:{MYSQL_PASS}@{MYSQL_HOST_INTERNAL}/{MYSQL_DB}"
 
 JDBC_DRIVER_PATH = "file:///opt/starrocks/drivers/mysql-connector-j-9.3.0.jar"
-JDBC_URI = f"jdbc:mysql://{MYSQL_HOST_INTERNAL}/{MYSQL_DB}"
+JDBC_URI = f"jdbc:mysql://{MYSQL_HOST_INTERNAL}"
 JDBC_DRIVER_CLASS = "com.mysql.cj.jdbc.Driver"
 
 JDBC_CATALOG = "bench_jdbc"
