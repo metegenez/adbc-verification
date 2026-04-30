@@ -39,6 +39,7 @@ _ADBC_URI = f"mysql://{_MYSQL_USER}:{_MYSQL_PASS}@sr-mysql:3306/{_MYSQL_DB}"
 
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 _CLI_PATH = _PROJECT_ROOT / "benchmark" / "mysql-jdbc-vs-adbc.py"
+_CLI_PATH_STARROCKS = _PROJECT_ROOT / "benchmark" / "starrocks-jdbc-vs-adbc.py"
 
 
 @pytest.mark.benchmark
@@ -125,6 +126,45 @@ def test_benchmark_cli_smoke_runs_one_query():
         f"CLI exited {result.returncode}\n"
         f"STDOUT: {result.stdout}\n"
         f"STDERR: {result.stderr}"
+    )
+    assert "JDBC total (ms)" in result.stdout
+    assert "ADBC total (ms)" in result.stdout
+    assert "Total ratio" in result.stdout
+    assert "Q01" in result.stdout
+    assert "AVG" in result.stdout
+    assert "GEOM" in result.stdout
+
+
+@pytest.mark.benchmark
+def test_starrocks_jdbc_vs_adbc_smoke():
+    """Invoke the StarRocks JDBC vs ADBC CLI with --queries 1 --runs 1 and
+    assert it exits 0 with expected table headers and the "StarRocks JDBC vs
+    ADBC" title string in stdout.
+    """
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(_CLI_PATH_STARROCKS),
+            "--queries", "1",
+            "--runs", "1",
+            "--timeout", "120",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=_PROJECT_ROOT,
+        timeout=600,
+    )
+
+    if result.returncode != 0:
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+    assert result.returncode == 0, (
+        f"CLI exited {result.returncode}\n"
+        f"STDOUT: {result.stdout}\n"
+        f"STDERR: {result.stderr}"
+    )
+    assert "StarRocks JDBC vs ADBC" in result.stdout, (
+        "Expected 'StarRocks JDBC vs ADBC' title in output"
     )
     assert "JDBC total (ms)" in result.stdout
     assert "ADBC total (ms)" in result.stdout
