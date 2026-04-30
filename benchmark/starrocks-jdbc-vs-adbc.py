@@ -33,7 +33,6 @@ import re
 import statistics
 import subprocess
 import sys
-import time
 
 import pymysql
 
@@ -67,7 +66,7 @@ STARROCKS_PORT = int(os.environ.get("STARROCKS_PORT", "9030"))
 # ADBC: Arrow Flight on port 9408
 JDBC_DRIVER_PATH = "file:///opt/starrocks/drivers/mysql-connector-j-9.3.0.jar"
 JDBC_DRIVER_CLASS = "com.mysql.cj.jdbc.Driver"
-JDBC_URI = "jdbc:mysql://sr-external:9030/tpch"
+JDBC_URI = "jdbc:mysql://sr-external:9030"
 
 ADBC_DRIVER_PATH = "/opt/starrocks/drivers/libadbc_driver_flightsql.so"
 ADBC_URI = "grpc://sr-external:9408"
@@ -517,96 +516,35 @@ def run_benchmark(args: argparse.Namespace) -> bool:
             conn.close()
 
 
+def _dump_crash_logs() -> None:
+    """Dump BE/FE crash evidence from the container without restarting."""
+    compose_file = PROJECT_ROOT / "docker" / "docker-compose.yml"
+    print("\n◆ Dumping crash logs (no restart)...\n", file=sys.stderr)
+    subprocess.run(
+        ["docker", "compose", "-f", str(compose_file), "exec", "-T", "sr-main",
+         "bash", "-c", "echo '=== be.out (last 80) ===' && tail -80 /var/log/starrocks/be/be.out 2>/dev/null; echo '=== be.INFO (last 40) ===' && tail -40 /var/log/starrocks/be/be.INFO 2>/dev/null; echo '=== be.WARNING (last 20) ===' && tail -20 /var/log/starrocks/be/be.WARNING 2>/dev/null"],
+        check=False,
+    )
+
+
 def main() -> None:
     args = parse_args()
-    max_retries = 3
-    for attempt in range(1, max_retries + 1):
-        try:
-            result = run_benchmark(args)
-            if result:
-                sys.exit(0)
-            # result is False — FE crash detected during benchmark
-            if attempt < max_retries:
-                _recover_fe()
-                print(
-                    f"\n◆ Retry {attempt + 1}/{max_retries} after FE recovery...\n",
-                    file=sys.stderr,
-                )
-                time.sleep(5)  # let catalogs stabilize
-            else:
-                print(
-                    "\n✗ Exhausted retries — FE keeps crashing.",
-                    file=sys.stderr,
-                )
-                print(
-                    "The ADBC MySQL driver (v0.3.1) has a known heap-corruption bug.",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-        except KeyboardInterrupt:
-            print(
-                "\nInterrupted — catalogs dropped via finally clause",
-                file=sys.stderr,
-            )
-            sys.exit(130)
-        except pymysql.err.OperationalError as e:
-            print(f"\n✗ StarRocks connection error: {e}", file=sys.stderr)
-            if attempt < max_retries:
-                _recover_fe()
-                continue
-            print(
-                "If FE crashed, run: docker compose -f docker/docker-compose.yml restart sr-main",
-                file=sys.stderr,
-            )
-            sys.exit(2)
-        except Exception as e:
-            # Catches cleanup exceptions (e.g., (0, '') when catalogs can't be
-            # dropped because FE is dead), and truly unexpected errors.
-            msg = str(e).strip()
-            if attempt < max_retries and (
-                "Lost connection" in msg
-                or msg == "(0, '')"
-                or "Can't connect" in msg
-                or "Connection reset" in msg
-            ):
-                print(
-                    f"\n◆ FE connection lost during cleanup: {e}",
-                    file=sys.stderr,
-                )
-                _recover_fe()
-                continue
-            print(f"\n✗ Unexpected error: {e}", file=sys.stderr)
-            sys.exit(1)
-
-
-def _recover_fe() -> None:
-    """Restart sr-main container and wait for it to be healthy."""
-    compose_file = PROJECT_ROOT / "docker" / "docker-compose.yml"
-    print("\n◆ Restarting StarRocks FE (sr-main)...", file=sys.stderr)
-    subprocess.run(
-        ["docker", "compose", "-f", str(compose_file), "restart", "sr-main"],
-        check=False,
-        capture_output=True,
-    )
-    print("◆ Waiting for FE to become ready...", file=sys.stderr)
-    deadline = time.time() + 120
-    while time.time() < deadline:
-        try:
-            conn = pymysql.connect(
-                host=STARROCKS_HOST,
-                port=STARROCKS_PORT,
-                user="root",
-                password="",
-                autocommit=True,
-            )
-            conn.ping()
-            conn.close()
-            print("◆ FE ready.", file=sys.stderr)
-            return
-        except Exception:
-            time.sleep(5)
-    print("✗ FE did not become ready within 120s", file=sys.stderr)
-    sys.exit(2)
+    try:
+        result = run_benchmark(args)
+        if result:
+            sys.exit(0)
+        _dump_crash_logs()
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print(
+            "\nInterrupted — catalogs dropped via finally clause",
+            file=sys.stderr,
+        )
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n✗ Unexpected error: {e}", file=sys.stderr)
+        _dump_crash_logs()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
