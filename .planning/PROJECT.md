@@ -29,10 +29,11 @@ A Docker Compose-based end-to-end verification suite for the StarRocks ADBC cata
 - ✓ **DC-09**: CLI runner accepting DEB path and orchestrating full test cycle — Validated in Phase 01
 - ✓ **DC-10**: Fast iteration path: `pytest -k` with running containers — Validated in Phase 01
 - ✓ **BENCH-01..BENCH-08**: MySQL JDBC vs ADBC benchmark CLI with argparse, warmup/measurement loop, EXPLAIN ANALYZE parsing, ASCII table output, AVG/GEOMEAN summaries — Validated in Phase 03
+- ✓ **FS-SR-01..FS-SR-09**: Second StarRocks instance (sr-external) on Compose with TPC-H SF1 native tables, ADBC FlightSQL catalog `sr_flightsql_starrocks` over `grpc://sr-external:9408`, 4-scenario test module, canonical `queries/tpch/` consolidating 44 per-backend duplicates, DuckDB tpch SF1 generator, dead `lib/` cleanup — Validated in Phase 04
 
 ### Active
 
-*(none — all active requirements validated in Phase 01/02/03)*
+*(none — all active requirements validated in Phase 01/02/03/04)*
 
 ### Out of Scope
 
@@ -43,11 +44,11 @@ A Docker Compose-based end-to-end verification suite for the StarRocks ADBC cata
 
 ## Context
 
-All three phases complete via GSD workflows:
+All four phases complete via GSD workflows — milestone v1.0 closed at 11/11 plans:
 - **Phase 01**: Docker Compose verification suite — 5 backends, 35 tests, CLI runner (`run-verify.py`)
 - **Phase 02**: TPC-H SF1 data (~900 MB) for PostgreSQL and MySQL, 44 TPC-H query files, data generators
 - **Phase 03**: MySQL JDBC vs ADBC benchmark CLI (`benchmark/mysql-jdbc-vs-adbc.py`) with EXPLAIN ANALYZE timing, ASCII comparison table, and smoke tests
-- **Next**: Phase 04 — FlightSQL TPC-H queries against external StarRocks with Arrow Flight ports
+- **Phase 04**: Second StarRocks instance (`sr-external`) over Arrow Flight at `grpc://sr-external:9408`; canonical `queries/tpch/q01..q22.sql` corpus with `{catalog}.{db}` placeholders consumed by `tests/test_queries.py` cross-product loader (`CANONICAL_BACKENDS`, `CANONICAL_SKIPS`); DuckDB-based SF1 generator; dead `lib/` cleanup. Suite now reports 98 passed / 20 skipped (17 postgres-numeric + 2 DuckDB :memory: + 1 sqlflite-join) / 0 failed.
 
 ## Constraints
 
@@ -92,4 +93,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-28 after Phase 03 completion*
+*Last updated: 2026-04-30 after Phase 04 completion*
