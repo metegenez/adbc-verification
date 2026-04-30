@@ -5,7 +5,7 @@ milestone_name: milestone
 status: milestone_complete
 stopped_at: Phase 4 plans 04-02 complete (canonical loader + sr-external test module landed)
 last_updated: "2026-04-30T09:55:00.000Z"
-last_activity: 2026-04-30 -- 04-02 complete (test_flightsql_starrocks.py + canonical TPC-H loader)
+last_activity: 2026-04-30 — Completed quick task 260430-f18: starrocks-jdbc-vs-adbc benchmark for external starrocks
 progress:
   total_phases: 4
   completed_phases: 5
@@ -72,6 +72,12 @@ None yet.
 
 None yet.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260430-f18 | starrocks-jdbc-vs-adbc benchmark for external starrocks | 2026-04-30 | e87fa30 | [260430-f18-starrocks-jdbc-vs-adbc-benchmark-for-ext](./quick/260430-f18-starrocks-jdbc-vs-adbc-benchmark-for-ext/) |
+
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
@@ -86,8 +92,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-30T09:55Z
-Stopped at: Completed 04-02 (test_flightsql_starrocks.py + canonical TPC-H loader); milestone v1.0 100%
+Last session: 2026-04-30T10:14Z
+Stopped at: Completed quick task 260430-f18 (starrocks-jdbc-vs-adbc benchmark for external starrocks)
 Resume file: None
 
 **Planned Phase:** 04 (flightsql-tpc-h-queries-against-external-starrocks-with-arro) — 5 plans — 2026-04-29T10:48:55.395Z (COMPLETE)
