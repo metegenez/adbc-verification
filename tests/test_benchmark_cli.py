@@ -67,9 +67,6 @@ def test_create_jdbc_catalog_lifecycle(sr_conn):
 
 
 @pytest.mark.benchmark
-@pytest.mark.xfail(
-    reason="StarRocks build feature/remote-table-squashed-9ec3dcc returns null explainString on EXPLAIN ANALYZE for external catalogs"
-)
 def test_explain_analyze_parser_extracts_total_for_q01(sr_conn):
     """Run EXPLAIN ANALYZE for TPC-H Q01 through an ADBC bench catalog and
     verify the parser returns a non-zero Summary.TotalTime in nanoseconds.

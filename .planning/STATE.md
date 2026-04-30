@@ -75,7 +75,7 @@ None yet.
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| testing-hygiene | tests/test_benchmark_cli.py::test_explain_analyze_parser_extracts_total_for_q01 reports XPASS — stale `xfail` marker since the parser fix landed; remove the marker so it shows as a regular pass. Out of scope for 04-02. | Deferred | 04-02 (2026-04-30) |
+| *(none)* | | | |
 
 ## Roadmap Evolution
 
