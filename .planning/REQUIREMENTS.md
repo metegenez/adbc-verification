@@ -65,11 +65,11 @@ These cover the new `sr_flightsql_starrocks` catalog backed by an external StarR
 **: TPC-H schema is created in sr-external under database `tpch`, and all 8 tables (region, nation, supplier, part, partsupp, customer, orders, lineitem) are loaded from the canonical SF1 CSVs via `INSERT INTO tpch.<table> SELECT * FROM FILES('file:///opt/starrocks/data/sf1/<table>.csv', 'format'='csv', ...)` (D-05, D-07, D-08)
 - [x] **FS-SR-03
 **: Init is idempotent across both cold (`down -v && up`) and warm (`restart`) boots — every init SQL file uses `CREATE DATABASE IF NOT EXISTS` / `CREATE TABLE IF NOT EXISTS` / `TRUNCATE TABLE` so re-running the init loop converges to the same row counts (D-04, RESEARCH Pitfall 8)
-- [ ] **FS-SR-04
+- [x] **FS-SR-04
 **: `tests/test_flightsql_starrocks.py` ships 4 scenarios — lifecycle, data, wrong-password, ADBC pass-through — and they all pass against a `sr_flightsql_starrocks` catalog at `grpc://sr-external:9408` with `username=root` / `password=""` (D-11, D-13, D-15, D-16)
-- [ ] **FS-SR-05
+- [x] **FS-SR-05
 **: All 22 canonical TPC-H query files under `queries/tpch/q01.sql..q22.sql` execute via `tests/test_queries.py` against the `sr_flightsql_starrocks` catalog and return correct row counts (D-09, D-10, RESEARCH Pitfall 6 — adopt mysql counts, NOT postgres counts)
-- [ ] **FS-SR-06
+- [x] **FS-SR-06
 **: The pre-existing sqlflite path coexists — `tests/test_flightsql.py` (5 tests against `sr-flightsql` / `sr-flightsql-tls`) and `queries/flightsql/` (2 query files) continue to pass with no regression after sr-external lands (D-12, D-14)
 - [x] **FS-SR-07
 **: Dead/superseded `lib/` files are deleted — `lib/docker_backends.py`, `lib/starrocks.py`, `lib/tls.py`, and `lib/driver_registry.py` are removed (post-Phase-1 they're no longer imported by `conftest.py` or any test). `lib/` retains only `__init__.py` and `catalog_helpers.py`.
@@ -130,15 +130,15 @@ Deferred to future release. Not in current roadmap.
 | VAL-05 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
 | VAL-06 | Phase 1: Docker Compose Verification Suite | 01-02 | Pending |
 | VAL-07 | Phase 1: Docker Compose Verification Suite | 01-01 | Pending |
-| FS-SR-01 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Pending |
-| FS-SR-02 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Pending |
-| FS-SR-03 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Pending |
-| FS-SR-04 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Pending |
-| FS-SR-05 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Pending |
-| FS-SR-06 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Pending |
-| FS-SR-07 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-04 | Pending |
-| FS-SR-08 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-05 | Pending |
-| FS-SR-09 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-05 | Pending |
+| FS-SR-01 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Complete |
+| FS-SR-02 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Complete |
+| FS-SR-03 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-01 | Complete |
+| FS-SR-04 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Complete |
+| FS-SR-05 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Complete |
+| FS-SR-06 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-02 | Complete |
+| FS-SR-07 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-04 | Complete |
+| FS-SR-08 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-05 | Complete |
+| FS-SR-09 | Phase 4: FlightSQL TPC-H Queries Against External StarRocks | 04-05 | Complete |
 
 **Coverage:**
 - v1 requirements: 26 total (17 Docker Compose + 9 FlightSQL→StarRocks)
@@ -147,4 +147,4 @@ Deferred to future release. Not in current roadmap.
 
 ---
 *Requirements defined: 2026-04-27*
-*Last updated: 2026-04-27 after roadmap creation*
+*Last updated: 2026-04-30 after Phase 4 completion (all FS-SR-* requirements satisfied)*
