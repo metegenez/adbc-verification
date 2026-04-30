@@ -14,7 +14,7 @@ The verification path under test:
 **In scope:**
 - New `sr-external` Compose service reusing the sr-main image
 - TPC-H schema + SF1 data loaded into sr-external as native StarRocks tables
-- New `queries/flightsql-starrocks/` directory with all 22 TPC-H queries
+- New `queries/tpch/` canonical TPC-H query home with 22 queries using `{catalog}.{db}` template substitution (single source of truth, eliminating per-backend duplicates)
 - New `tests/test_flightsql_starrocks.py` (lifecycle + data + wrong-password + passthrough)
 - Plaintext (`grpc://`) connection only
 
@@ -44,7 +44,7 @@ The verification path under test:
 
 ### Query Corpus & Coexistence
 - **D-09:** Full 22 TPC-H queries on SF1, adapted as needed for the StarRocks SQL dialect on the read side. Picked up automatically by `tests/test_queries.py` via its `queries/**/*.sql` discovery glob. Each query file includes the standard `-- Expected: N rows` annotation.
-- **D-10:** New top-level directory `queries/flightsql-starrocks/`. The test loader uses the directory name as the `driver` param; new dir = new param value, no test-loader changes needed.
+- **D-10 (OVERRIDDEN by 04-CANONICAL-SPEC.md):** ~~New top-level directory `queries/flightsql-starrocks/`.~~ Replaced by `queries/tpch/` as the single canonical TPC-H query home using `{catalog}.{db}` template substitution and per-backend `CANONICAL_BACKENDS` mapping. This eliminates 44 duplicate per-backend query files and supports multi-backend substitution from one source of truth.
 - **D-11:** Catalog name `sr_flightsql_starrocks`. Tables addressed as `sr_flightsql_starrocks.tpch.<table>`. The existing `sr_flightsql` namespace continues to map to the sqlflite SQLite seed-data backend.
 - **D-12:** **Both FlightSQL paths coexist.** Existing `sr-flightsql` / `sr-flightsql-tls` services, `tests/test_flightsql.py` (5 tests), and `queries/flightsql/` (2 query files) all stay untouched. New `tests/test_flightsql_starrocks.py` covers the StarRocks Arrow Flight path independently.
 
@@ -115,7 +115,7 @@ The verification path under test:
 - `docker/data/sf1/`: Phase 2 CSVs reused as-is. No new generator step.
 - `conftest.py`: `FLIGHTSQL_DRIVER` constant + `flightsql_driver_path` fixture both reused unchanged for the new catalog.
 - `lib/catalog_helpers.py`: Pure SQL catalog helpers — work for any FlightSQL endpoint, including StarRocks.
-- `tests/test_queries.py`: Auto-discovers `queries/flightsql-starrocks/*.sql` once the directory exists.
+- `tests/test_queries.py`: Canonical loader (per 04-CANONICAL-SPEC.md) reads `queries/tpch/q*.sql` and substitutes `{catalog}.{db}` per backend.
 - `tests/test_flightsql.py`: Direct template for `tests/test_flightsql_starrocks.py` (4 scenarios reuse cleanly; TLS one is intentionally not carried over).
 
 ### Established Patterns
@@ -130,7 +130,7 @@ The verification path under test:
 - sr-main (FE) creates `sr_flightsql_starrocks` catalog → `grpc://sr-external:9408` (Docker DNS) → sr-external StarRocks Arrow Flight server → sr-external `tpch.*` tables
 - sr-external bind-mounts `./data/sf1/` (read-only) and `./init/sr-external/` (read-only) from `docker/`
 - sr-external healthcheck blocks sr-main startup until ready (`depends_on: condition: service_healthy`)
-- `tests/test_queries.py` picks up `queries/flightsql-starrocks/*.sql` automatically once the directory exists
+- `tests/test_queries.py` canonical loader reads `queries/tpch/q*.sql` and substitutes `{catalog}.{db}` per backend (per 04-CANONICAL-SPEC.md)
 - `tests/test_flightsql_starrocks.py` uses `flightsql_driver_path` and `sr_conn` fixtures from `conftest.py` (no new fixtures required)
 - `run-verify.py` healthcheck loop already accepts services with healthchecks — no CLI change anticipated
 
@@ -139,7 +139,7 @@ The verification path under test:
 |---|---|---|
 | `docker/docker-compose.yml` | Add `sr-external` service (same `build: .`, no host ports, mounts SF1 + init/sr-external, healthcheck, start_period); add `sr-external` to sr-main's `depends_on` | New service |
 | `docker/init/sr-external/` (new) | TPC-H DDL + per-table `INSERT … FROM FILES()` SQL files | sr-external init |
-| `queries/flightsql-starrocks/` (new) | 22 TPC-H query files addressing `sr_flightsql_starrocks.tpch.*` | New driver target |
+| `queries/tpch/` (new) | 22 canonical TPC-H query files with `{catalog}.{db}` substitution, addressing `sr_flightsql_starrocks.tpch.*` (among others) | Canonical query home |
 | `tests/test_flightsql_starrocks.py` (new) | 4 lifecycle/data/negative/passthrough tests | New catalog coverage |
 | `.planning/REQUIREMENTS.md` | Add new requirements for FlightSQL→StarRocks (FS-SR-01…) | Traceability |
 
