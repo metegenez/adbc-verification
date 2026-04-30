@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: complete
+status: milestone_complete
 stopped_at: Phase 4 plans 04-02 complete (canonical loader + sr-external test module landed)
 last_updated: "2026-04-30T09:55:00.000Z"
 last_activity: 2026-04-30 -- 04-02 complete (test_flightsql_starrocks.py + canonical TPC-H loader)
 progress:
   total_phases: 4
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 11
   completed_plans: 11
-  percent: 100
+  percent: 125
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-04-27)
 
 ## Current Position
 
-Phase: 04 (flightsql-tpc-h-queries-against-external-starrocks-with-arro) — COMPLETE
-Plan: 5 of 5 (all complete)
-Status: Phase 04 complete; milestone v1.0 100% delivered
-Last activity: 2026-04-30 -- 04-02 complete (test_flightsql_starrocks.py + canonical TPC-H loader; 98 passed / 20 skipped / 1 xpassed full-suite)
+Phase: 04
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-04-30
 
 Progress: [██████████] 100% (4/4 phases complete, 11/11 plans complete)
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100% (4/4 phases complete, 11/11 plan
 
 **Velocity:**
 
-- Total plans completed: 3
+- Total plans completed: 8
 - Average duration: N/A
 - Total execution time: 0.0 hours
 
@@ -45,6 +45,7 @@ Progress: [██████████] 100% (4/4 phases complete, 11/11 plan
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 3 | - | - |
+| 04 | 5 | - | - |
 
 **Recent Trend:**
 
