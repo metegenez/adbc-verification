@@ -5,7 +5,7 @@ milestone_name: milestone
 status: milestone_complete
 stopped_at: Phase 4 plans 04-02 complete (canonical loader + sr-external test module landed)
 last_updated: "2026-04-30T09:55:00.000Z"
-last_activity: 2026-04-30 — Completed quick task 260430-f18: starrocks-jdbc-vs-adbc benchmark for external starrocks
+last_activity: 2026-05-01 — Completed quick task 260501-krv: ship StarRocks 0.2.0-dev from ~/coding/starrocks
 progress:
   total_phases: 4
   completed_phases: 5
@@ -77,6 +77,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260430-f18 | starrocks-jdbc-vs-adbc benchmark for external starrocks | 2026-04-30 | e87fa30 | [260430-f18-starrocks-jdbc-vs-adbc-benchmark-for-ext](./quick/260430-f18-starrocks-jdbc-vs-adbc-benchmark-for-ext/) |
+| 260501-krv | ship StarRocks 0.2.0-dev from ~/coding/starrocks, rebuild docker images | 2026-05-01 | 72175e8 | [260501-krv-ship-starrocks-from-coding-starrocks-wit](./quick/260501-krv-ship-starrocks-from-coding-starrocks-wit/) |
 
 ## Deferred Items
 
