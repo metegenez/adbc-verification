@@ -522,7 +522,7 @@ def _dump_crash_logs() -> None:
     print("\n◆ Dumping crash logs (no restart)...\n", file=sys.stderr)
     subprocess.run(
         ["docker", "compose", "-f", str(compose_file), "exec", "-T", "sr-main",
-         "bash", "-c", "echo '=== be.out (last 80) ===' && tail -80 /var/log/starrocks/be/be.out 2>/dev/null; echo '=== be.INFO (last 40) ===' && tail -40 /var/log/starrocks/be/be.INFO 2>/dev/null; echo '=== be.WARNING (last 20) ===' && tail -20 /var/log/starrocks/be/be.WARNING 2>/dev/null"],
+         "bash", "-c", "echo '=== fe.out (last 400) ===' && tail -400 /var/log/starrocks/fe/fe.out 2>/dev/null; echo '=== fe.log (last 400) ===' && tail -400 /var/log/starrocks/fe/fe.log 2>/dev/null; echo '=== be.out (last 80) ===' && tail -80 /var/log/starrocks/be/be.out 2>/dev/null; echo '=== be.INFO (last 40) ===' && tail -40 /var/log/starrocks/be/be.INFO 2>/dev/null; echo '=== be.WARNING (last 20) ===' && tail -20 /var/log/starrocks/be/be.WARNING 2>/dev/null"],
         check=False,
     )
 
