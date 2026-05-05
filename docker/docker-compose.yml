@@ -4,6 +4,7 @@ services:
     container_name: sr-main
     ports:
       - "9030:9030"
+      - "9408:9408"
     volumes:
       - ./certs/:/opt/starrocks/certs/:ro
     networks:
@@ -89,6 +90,9 @@ services:
   sr-external:
     build: .
     container_name: sr-external
+    ports:
+      - "9031:9030"
+      - "9418:9408"
     volumes:
       - ./certs/:/opt/starrocks/certs/:ro
       - ./init/sr-external/:/docker-entrypoint-initdb.d/:ro

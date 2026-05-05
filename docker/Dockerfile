@@ -27,6 +27,7 @@ RUN echo "arrow_flight_port = 9408" >> /etc/starrocks/fe/fe.conf && \
 
 COPY drivers/ /opt/starrocks/drivers/
 COPY data/ /opt/starrocks/data/
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

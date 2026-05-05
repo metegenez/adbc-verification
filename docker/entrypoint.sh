@@ -25,6 +25,12 @@ if [ -f "$BE_LIBJVM" ] && [ ! -L "$BE_LIBJVM" ]; then
     ln -s /usr/lib/jvm/java-17-openjdk-amd64/lib/server/libjvm.so "$BE_LIBJVM"
 fi
 
+# FlightSQL ADBC requires libjsig (signal chaining) and asyncpreemptoff (Go SIGURG).
+# See .planning/debug/flightsql-adbc-fe-crash.md (Cycle 13). Without these, the FE
+# JVM crashes within tens of ADBC ops under sustained load.
+export LD_PRELOAD="/usr/lib/jvm/java-17-openjdk-amd64/lib/libjsig.so"
+export GODEBUG="asyncpreemptoff=1"
+
 echo "=== Starting StarRocks FE ==="
 /usr/lib/starrocks/fe/bin/start_fe.sh --daemon
 
